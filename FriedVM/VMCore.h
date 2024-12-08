@@ -1,16 +1,18 @@
 #pragma once
 
-#include <vector>
-#include <cstdint>
-#include "InstructionSet.h"
+#include <string>
+#include "VMInstance.h"
+#include "FBinary.h"
 
-class VMCore
+class VMCore : VMInstanceBase
 {
 public:
-	VMCore(uint8_t programCounter = 0);
-	bool ReadMagic();
-
+	VMCore(VMInstance& newInstance);
+	void Parse();
 private:
-	uint8_t pc;
-	std::vector<uint8_t> bytecode;
+	FBinary binaryApi;
+	//FStack stackApi;
+
+	void PUSH(uint8_t params[]);
+	void EXIT(uint8_t params[]);
 };

@@ -1,16 +1,41 @@
 #include "VMCore.h"
 
-VMCore::VMCore(uint8_t progamCounter)
+#define MAKE_EXECUTE(method) [this](uint8_t params[]) { this->method(params); }
+
+VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi(newInstance)
 {
-	pc = progamCounter;
+	opcode_lookup[0x00].execute = MAKE_EXECUTE(PUSH);
+	opcode_lookup[0x1A].execute = MAKE_EXECUTE(EXIT);
 }
 
-bool VMCore::ReadMagic()
+void VMCore::Parse()
 {
-	auto magic_size = sizeof(file_magic) / sizeof(file_magic[0]);
-	for (size_t i = 0; i < magic_size; i++)
+	binaryApi.ParseMagic();
+	for (;;)
 	{
-		i++;
+		INSTRUCTION instruction = binaryApi.GetInstruction();
+		if (instruction.execute == nullptr)
+		{
+			DIE << "not initialized";
+			return;
+		}
+		if (instruction.paramCount > maxParamCount)
+		{
+			DIE << "instruction: " << instruction.op_name << " Exeeded the max amount of parameters!";
+			return;
+		}
+
+		auto params = binaryApi.GetParams(instruction.paramCount);
+		instruction.execute(params);
 	}
+}
+void VMCore::PUSH(uint8_t params[])
+{
+	
+}
+void VMCore::EXIT(uint8_t params[])
+{
+	//instance.
+	exit(EXIT_SUCCESS);
 }
 
