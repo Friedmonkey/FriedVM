@@ -3,10 +3,22 @@
 void FBinary::ParseMagic()
 {
 	auto magic_size = sizeof(file_magic) / sizeof(*file_magic);
-	for (size_t i = 0; i < magic_size; i++)
+	if (instance.bytecode.size() < (instance.pc + magic_size))
 	{
-		//TODO: implement this
+		DIE << "file size was too small, expected more bytes";
+		return;
 	}
+
+	for (uint8_t i = 0; i < magic_size; i++)
+	{
+		if (file_magic[i] != instance.bytecode[instance.pc + i])
+		{
+			DIE << "The input file was not in the correct format";
+			return;
+		}
+	}
+
+	instance.pc += magic_size;
 }
 
 INSTRUCTION FBinary::GetInstruction()
@@ -17,14 +29,15 @@ INSTRUCTION FBinary::GetInstruction()
 		return NULL_INSTRUCTION;
 	}
 
-	uint8_t opcode = instance.bytecode.at(instance.pc++);
+	uint8_t opcode = instance.bytecode.at(instance.pc);
 	if (opcode_lookup.size() >= opcode)
 	{
+		instance.pc++;
 		return opcode_lookup.at(opcode);
 	}
 	else
 	{
-		DIE << "oops";
+		DIE << "Encounterd unknown opcode: " << HEX(opcode) << " at position: " << instance.pc << " no instruction found!";
 		return NULL_INSTRUCTION;
 	}
 }
@@ -41,17 +54,17 @@ uint8_t* FBinary::GetParams(int count)
 
 uint8_t* FBinary::ReadBytes(uint8_t count)
 {
-	uint8_t* paramBuffer = new uint8_t[count];
+	uint8_t* buffer = new uint8_t[count];
 	if (instance.bytecode.size() < (instance.pc+count))
 	{
 		DIE << "file size was too small, expected more bytes";
-		return paramBuffer;
+		return buffer;
 	}
 
 	for (uint8_t i = 0; i < count; i++)
 	{
-		paramBuffer[i] = instance.bytecode[instance.pc+i];
+		buffer[i] = instance.bytecode[instance.pc+i];
 	}
 	instance.pc += count;
-	return paramBuffer;
+	return buffer;
 }
