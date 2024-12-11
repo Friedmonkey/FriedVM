@@ -37,15 +37,15 @@ void VMCore::Parse()
 	while(instance.pc < instructionStart)
 	{
 		uint32_t length = binaryApi.ParseMeta();
-
-		if (instance.bytecode.size() < (totalLength + length))
+		auto len = totalLength + constPoolStart;
+		if (instance.bytecode.size() < (len + length))
 		{
-			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(instance.pc + count) << ")";
+			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(len + length) << ")";
 		}
 		uint8_t *buffer = new uint8_t[length];
 		for (size_t i = 0; i < length; i++)
 		{
-			buffer[i] = instance.bytecode[totalLength + 1];
+			buffer[i] = instance.bytecode[len + i];
 		}
 		totalLength += length;
 

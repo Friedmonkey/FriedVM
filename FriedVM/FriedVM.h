@@ -10,6 +10,7 @@
 #include "VMCore.h" // Include your VMCore and related classes
 
 //#define DEBUG
+#define DEBUG_PATH "C:/Users/marti/source/repos/FriedVM/assembled.fxe"
 
 // Predefined bytecode array for debug mode
 #ifdef DEBUG

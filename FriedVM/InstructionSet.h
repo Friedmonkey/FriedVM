@@ -60,6 +60,6 @@ public:
 
 const uint8_t maxParamCount = 2;
 //magic = FXE1
-const uint8_t file_magic[] = { 0x46, 0x58, 0x45, 0x31, };
+const uint8_t file_magic[] = { 0x46, 0x58, 0x45, 0x21, };
 extern std::vector<INSTRUCTION> opcode_lookup;
 

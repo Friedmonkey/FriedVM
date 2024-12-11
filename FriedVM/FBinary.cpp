@@ -6,7 +6,6 @@ bool FBinary::ParseMagic()
 	if (instance.bytecode.size() < (instance.pc + magic_size))
 	{
 		DIE << "file size was too small, expected more bytes";
-		return;
 	}
 
 	for (uint8_t i = 0; i < magic_size; i++)
@@ -14,12 +13,11 @@ bool FBinary::ParseMagic()
 		if (file_magic[i] != instance.bytecode[instance.pc + i])
 		{
 			DIE << "The input file was not in the correct format";
-			return;
 		}
 	}
 
 	instance.pc += magic_size;
-	bool hasSymbols = false;
+	bool hasSymbols = true;
 	return hasSymbols;
 }
 
