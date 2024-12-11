@@ -12,43 +12,45 @@ public:
 private:
 	FBinary binaryApi;
 	//FStack stackApi;
-	uint8_t pop();
-	void push(uint8_t value);
+	uint32_t pop();
+	void push(uint32_t value);
 
-	void PUSH(uint8_t params[]);
-	void POP(uint8_t params[]);
-	void DUP(uint8_t params[]);
+	void PUSH(uint32_t params[]);
+	void POP(uint32_t params[]);
+	void DUP(uint32_t params[]);
 
-	//void VAR(uint8_t params[]);
-	//void GET_VAR(uint8_t params[]);
-	//void POP_VAR(uint8_t params[]);
-	//void PSH_VAR(uint8_t params[]);
-	//void MOV_VAR(uint8_t params[]);
-	//void DEL(uint8_t params[]);
+	//void VAR(uint32_t params[]);
+	//void GET_VAR(uint32_t params[]);
+	//void POP_VAR(uint32_t params[]);
+	//void PSH_VAR(uint32_t params[]);
+	//void MOV_VAR(uint32_t params[]);
+	//void DEL(uint32_t params[]);
 
-	void ADD(uint8_t params[]);
-	void SUB(uint8_t params[]);
-	void MUL(uint8_t params[]);
-	void DIV(uint8_t params[]);
+	void ADD(uint32_t params[]);
+	void SUB(uint32_t params[]);
+	void MUL(uint32_t params[]);
+	void DIV(uint32_t params[]);
 	
-	void AND(uint8_t params[]);
-	void OR(uint8_t params[]);
-	void NOT(uint8_t params[]);
+	void AND(uint32_t params[]);
+	void OR(uint32_t params[]);
+	void NOT(uint32_t params[]);
 	
-	void EQ(uint8_t params[]);
-	//void NEQ(uint8_t params[]);
-	//void GT(uint8_t params[]);
-	//void LT(uint8_t params[]);
+	void EQ(uint32_t params[]);
+	void NEQ(uint32_t params[]);
+	void GT(uint32_t params[]);
+	void GTEQ(uint32_t params[]);
+	void LT(uint32_t params[]);
+	void LTEQ(uint32_t params[]);
 	
-	//void JMP(uint8_t params[]);
-	//void JMP_IF(uint8_t params[]);
+	//void JMP(uint32_t params[]);
+	//void JMP_IF(uint32_t params[]);
 
-	//void CALL(uint8_t params[]);
-	//void CALL_IF(uint8_t params[]);
+	//void CALL(uint32_t params[]);
+	//void CALL_IF(uint32_t params[]);
 
-	//void RET(uint8_t params[]);
+	//void RET(uint32_t params[]);
 	//
-	//void SYSCALL(uint8_t params[]);
+	//void SYSCALL(uint32_t params[]);
 	
-	void EXIT(uint8_t params[]);
+	void EXIT(uint32_t params[]);
 };

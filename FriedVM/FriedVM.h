@@ -9,7 +9,7 @@
 #include <string>
 #include "VMCore.h" // Include your VMCore and related classes
 
-#define DEBUG
+//#define DEBUG
 
 // Predefined bytecode array for debug mode
 #ifdef DEBUG

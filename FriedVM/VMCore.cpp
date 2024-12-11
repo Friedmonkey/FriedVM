@@ -1,6 +1,6 @@
 #include "VMCore.h"
 
-#define MAKE_EXECUTE(method) [this](uint8_t params[]) { this->method(params); }
+#define MAKE_EXECUTE(method) [this](uint32_t params[]) { this->method(params); }
 
 VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi(newInstance)
 {
@@ -24,8 +24,35 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 
 void VMCore::Parse()
 {
-	binaryApi.ParseMagic();
-	for (;;)
+	bool hasSymbols = binaryApi.ParseMagic();
+	uint64_t instructionStart = binaryApi.ParseAddress();
+	uint64_t constPoolStart = binaryApi.ParseAddress();
+	uint64_t symbolsStart = 0;
+	if (hasSymbols)
+	{
+		symbolsStart = binaryApi.ParseAddress();
+	}
+	uint64_t totalLength = 0;
+	uint64_t pcBackup = 0;
+	while(instance.pc < instructionStart)
+	{
+		uint32_t length = binaryApi.ParseMeta();
+
+		if (instance.bytecode.size() < (totalLength + length))
+		{
+			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(instance.pc + count) << ")";
+		}
+		uint8_t *buffer = new uint8_t[length];
+		for (size_t i = 0; i < length; i++)
+		{
+			buffer[i] = instance.bytecode[totalLength + 1];
+		}
+		totalLength += length;
+
+		instance.varibles.push_back(buffer);
+	}
+	//instance.pc = instructionStart;
+	while(instance.pc < constPoolStart)
 	{
 		INSTRUCTION instruction = binaryApi.GetInstruction();
 		if (instruction.execute == nullptr)
@@ -37,35 +64,47 @@ void VMCore::Parse()
 			DIE << "instruction: " << instruction.op_name << " Exeeded the max amount of parameters!";
 		}
 
-		auto params = binaryApi.GetParams(instruction.paramCount);
+		auto params = binaryApi.GetParams(instruction);
 		instruction.execute(params);
 	}
+	if (!hasSymbols || symbolsStart == 0) return;
+	//while (instance.pc < instance.bytecode.size())
+	//{
+	//	std::vector<char> symbolBuffer;
+	//	do
+	//	{
+	//		symbolBuffer.push_back(instance.bytecode[instance.pc]);
+	//	}
+	//	while (instance.bytecode[instance.pc] != 0xBB);
+	//	instance.symbols.push_back(symbolBuffer);
+	//	instance.pc++;
+	//}
 }
-uint8_t VMCore::pop()
+uint32_t VMCore::pop()
 {
 	if (instance.sp == 0)
 	{
 		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
 	}
 	instance.sp--;
-	uint8_t value = instance.stack.at(instance.sp);
+	uint32_t value = instance.stack.at(instance.sp);
 	instance.stack.pop_back();
 	return value;
 }
-void VMCore::push(uint8_t value)
+void VMCore::push(uint32_t value)
 {
 	instance.sp++;
 	instance.stack.push_back(value);
 }
-void VMCore::PUSH(uint8_t params[])
+void VMCore::PUSH(uint32_t params[])
 {
 	push(params[0]);
 }
-void VMCore::POP(uint8_t params[])
+void VMCore::POP(uint32_t params[])
 {
 	pop();
 }
-void VMCore::DUP(uint8_t params[])
+void VMCore::DUP(uint32_t params[])
 {
 	if (instance.sp == 0)
 	{
@@ -74,50 +113,50 @@ void VMCore::DUP(uint8_t params[])
 	auto val1 = instance.stack.at(instance.sp);
 	push(val1);
 }
-void VMCore::ADD(uint8_t params[])
+void VMCore::ADD(uint32_t params[])
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 + val2);
 }
-void VMCore::SUB(uint8_t params[])
+void VMCore::SUB(uint32_t params[])
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 - val2);
 }
-void VMCore::MUL(uint8_t params[])
+void VMCore::MUL(uint32_t params[])
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 * val2);
 }
-void VMCore::DIV(uint8_t params[])
+void VMCore::DIV(uint32_t params[])
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 / val2);
 }
-void VMCore::AND(uint8_t params[])
+void VMCore::AND(uint32_t params[])
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 & val2);
 }
-void VMCore::OR(uint8_t params[])
+void VMCore::OR(uint32_t params[])
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 | val2);
 }
-void VMCore::NOT(uint8_t params[])
+void VMCore::NOT(uint32_t params[])
 {
 	auto val1 = pop();
 	if (val1 == iFALSE) push(iTRUE);
 	else if (val1 == iTRUE) push(iFALSE);
 	else DIE << "Stack value expected a bool (0x00 or 0x01) but got " << HEX(val1) << "instead!";
 }
-void VMCore::EQ(uint8_t params[])
+void VMCore::EQ(uint32_t params[])
 {
 	auto val1 = pop();
 	auto val2 = pop();
@@ -126,7 +165,52 @@ void VMCore::EQ(uint8_t params[])
 	else
 		push(iFALSE);
 }
-void VMCore::EXIT(uint8_t params[])
+void VMCore::NEQ(uint32_t params[])
+{
+	auto val1 = pop();
+	auto val2 = pop();
+	if (val1 != val2)
+		push(iTRUE);
+	else
+		push(iFALSE);
+}
+void VMCore::GT(uint32_t params[])
+{
+	auto val1 = pop();
+	auto val2 = pop();
+	if (val1 > val2)
+		push(iTRUE);
+	else
+		push(iFALSE);
+}
+void VMCore::GTEQ(uint32_t params[])
+{
+	auto val1 = pop();
+	auto val2 = pop();
+	if (val1 >= val2)
+		push(iTRUE);
+	else
+		push(iFALSE);
+}
+void VMCore::LT(uint32_t params[])
+{
+	auto val1 = pop();
+	auto val2 = pop();
+	if (val1 < val2)
+		push(iTRUE);
+	else
+		push(iFALSE);
+}
+void VMCore::LTEQ(uint32_t params[])
+{
+	auto val1 = pop();
+	auto val2 = pop();
+	if (val1 <= val2)
+		push(iTRUE);
+	else
+		push(iFALSE);
+}
+void VMCore::EXIT(uint32_t params[])
 {
 	auto exitCode = pop();
 	DIE << "Exit was called with code: " << NUM(exitCode);
