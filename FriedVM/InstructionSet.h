@@ -9,14 +9,18 @@ struct INSTRUCTION
 {
 public:
 	INSTRUCTION(uint8_t byte, std::string name, uint8_t pcount)
-		:opcode(byte), op_name(name), paramCount(pcount) 
+		:opcode(byte), op_name(name), paramCount(pcount)
 	{
 		execute = nullptr;
+		arg_size = 1;
+		immediate = false;
 	}
 	const uint8_t opcode;
 	const std::string op_name;
 	const uint8_t paramCount;
-	std::function<void(uint8_t[])> execute;
+	uint8_t arg_size; // Argument size (0–3)
+	bool immediate;   // Immediate flag
+	std::function<void(uint8_t[], INSTRUCTION instruction)> execute;
 	//void (*execute)(uint8_t params[]);
 };
 

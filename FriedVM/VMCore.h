@@ -3,7 +3,10 @@
 #include <string>
 #include "VMInstance.h"
 #include "FBinary.h"
+#include "FStack.h"
 
+#define instuctionParams uint8_t params[], INSTRUCTION instruction
+#define mPUSH(val) push(val, &instruction)
 class VMCore : VMInstanceBase
 {
 public:
@@ -11,13 +14,13 @@ public:
 	void Parse();
 private:
 	FBinary binaryApi;
-	//FStack stackApi;
-	uint8_t pop();
-	void push(uint8_t value);
+	FStack stackApi;
+	uint8_t *pop();
+	void push(uint8_t *value, INSTRUCTION &instruction);
 
-	void PUSH(uint8_t params[]);
-	void POP(uint8_t params[]);
-	void DUP(uint8_t params[]);
+	void PUSH(instuctionParams);
+	void POP(instuctionParams);
+	void DUP(instuctionParams);
 
 	//void VAR(uint8_t params[]);
 	//void GET_VAR(uint8_t params[]);
@@ -26,16 +29,16 @@ private:
 	//void MOV_VAR(uint8_t params[]);
 	//void DEL(uint8_t params[]);
 
-	void ADD(uint8_t params[]);
-	void SUB(uint8_t params[]);
-	void MUL(uint8_t params[]);
-	void DIV(uint8_t params[]);
+	void ADD(instuctionParams);
+	void SUB(instuctionParams);
+	void MUL(instuctionParams);
+	void DIV(instuctionParams);
 	
-	void AND(uint8_t params[]);
-	void OR(uint8_t params[]);
-	void NOT(uint8_t params[]);
+	void AND(instuctionParams);
+	void OR(instuctionParams);
+	void NOT(instuctionParams);
 	
-	void EQ(uint8_t params[]);
+	void EQ(instuctionParams);
 	//void NEQ(uint8_t params[]);
 	//void GT(uint8_t params[]);
 	//void LT(uint8_t params[]);
@@ -50,5 +53,5 @@ private:
 	//
 	//void SYSCALL(uint8_t params[]);
 	
-	void EXIT(uint8_t params[]);
+	void EXIT(instuctionParams);
 };

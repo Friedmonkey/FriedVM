@@ -9,9 +9,6 @@ struct VMInstance
 public:
 	uint8_t pc = 0;
 	std::vector<uint8_t> bytecode;
-
-	uint8_t sp = 0;
-	std::vector<uint8_t> stack;
 };
 
 class VMInstanceBase
