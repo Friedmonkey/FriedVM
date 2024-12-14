@@ -4,16 +4,15 @@
 
 void VMCore::Parse()
 {
-	bool hasSymbols = binaryApi.ParseMagic();
+	instance.hasSymbols = binaryApi.ParseMagic();
 	uint64_t instructionStart = binaryApi.ParseAddress();
 	uint64_t constPoolStart = binaryApi.ParseAddress();
 	uint64_t symbolsStart = 0;
-	if (hasSymbols)
+	if (instance.hasSymbols)
 	{
 		symbolsStart = binaryApi.ParseAddress();
 	}
 	uint64_t totalLength = 0;
-	//uint64_t pcBackup = 0;
 	while(instance.pc < instructionStart) //meta section
 	{
 		uint32_t length = binaryApi.ParseMeta();
@@ -32,7 +31,7 @@ void VMCore::Parse()
 		instance.meta.push_back(length);
 		instance.varibles.push_back(buffer);
 	}
-	if (hasSymbols && instance.pc == instructionStart) //symbols
+	if (instance.hasSymbols && instance.pc == instructionStart) //symbols
 	{
 		totalLength = symbolsStart;
 		std::vector<uint8_t> symbol_buffer;
@@ -72,6 +71,12 @@ void VMCore::Parse()
 			}
 		}
 	}
+
+	if (instance.symbols.size() != instance.symbols_length.size())
+		DIE << "symbol size does not match symbol_length size";
+	if (instance.varibles.size() != instance.meta.size())
+		DIE << "varible size does not match meta size";
+
 	while(instance.pc < constPoolStart) //instructions section
 	{
 		INSTRUCTION instruction = binaryApi.GetInstruction();
@@ -295,6 +300,9 @@ void VMCore::SYS_PRINT()
 }
 void VMCore::SYS_DUMP()
 {
+	if (!instance.hasSymbols)
+		DIE << "Cant dump varible because symbols are not included";
+
 	auto idx_addr = pop();
 
 	uint8_t* symbol_data = instance.symbols.at(idx_addr);

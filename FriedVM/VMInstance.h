@@ -16,6 +16,7 @@ public:
 	std::vector<uint32_t> meta;
 	std::vector<uint8_t*> varibles;
 
+	bool hasSymbols;
 	std::vector<uint8_t> symbols_length;
 	std::vector<uint8_t*> symbols;
 };
