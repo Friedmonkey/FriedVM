@@ -14,7 +14,8 @@ private:
 	//FStack stackApi;
 	uint32_t pop();
 	void push(uint32_t value);
-
+	void syscall(uint32_t index);
+#pragma region Instructions
 	void PUSH(uint32_t params[]);
 	void POP(uint32_t params[]);
 	void DUP(uint32_t params[]);
@@ -50,7 +51,20 @@ private:
 
 	//void RET(uint32_t params[]);
 	//
-	//void SYSCALL(uint32_t params[]);
+	void SYSCALL(uint32_t params[]);
 	
 	void EXIT(uint32_t params[]);
+#pragma endregion
+
+#pragma region Syscalls
+	void SYS_PAUSE();
+	void SYS_CLEAR();
+	void SYS_READ();
+	void SYS_PRINT();
+#pragma endregion
+#pragma region Syscall_helpers
+	void print_raw(uint8_t* data, uint32_t length);
+#pragma endregion
+
+
 };

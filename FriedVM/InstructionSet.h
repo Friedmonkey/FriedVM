@@ -59,7 +59,9 @@ public:
 #define iFALSE		0x00
 
 const uint8_t maxParamCount = 2;
-//magic = FXE1
-const uint8_t file_magic[] = { 0x46, 0x58, 0x45, 0x21, };
+//magic = FXE
+const uint8_t file_magic[] = { 0x46, 0x58, 0x45 };
+const uint8_t symbolSplitCar = 0xBB;
 extern std::vector<INSTRUCTION> opcode_lookup;
+extern std::vector<std::function<void()>> syscall_lookup;
 

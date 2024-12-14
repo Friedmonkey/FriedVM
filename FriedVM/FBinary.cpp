@@ -1,8 +1,13 @@
 #include "FBinary.h"
 
+//parse the magic + its version and if it says it has symbols included
+// version is either 1,2,3,4,5,6,7,8,9
+//the same version but with symbols is !,@,#,$,%,^,&,*,(
 bool FBinary::ParseMagic()
 {
+	bool hasSymbols = false;
 	auto magic_size = sizeof(file_magic) / sizeof(*file_magic);
+	magic_size++; //the version
 	if (instance.bytecode.size() < (instance.pc + magic_size))
 	{
 		DIE << "file size was too small, expected more bytes";
@@ -10,14 +15,28 @@ bool FBinary::ParseMagic()
 
 	for (uint8_t i = 0; i < magic_size; i++)
 	{
-		if (file_magic[i] != instance.bytecode[instance.pc + i])
+		if (i == magic_size-1) //the version
 		{
-			DIE << "The input file was not in the correct format";
+			uint8_t version_byte = instance.bytecode[instance.pc + i];
+			uint8_t version_type = version_byte  & 0xF0;
+			//uint8_t version_num = version_byte & 0x0F;
+			if (version_type == 0x20) //special chars, !,@,# and so on
+				hasSymbols = true;
+			else if (version_type == 0x30) //numbers, 1,2,3 and so on
+				hasSymbols = true;
+			else
+				DIE << "Unknown version type:" << HEX(version_type) << " expected either 0x20 for sumbols or 0x30 for no symbols";
+		}
+		else
+		{
+			if (file_magic[i] != instance.bytecode[instance.pc + i])
+			{
+				DIE << "The input file was not in the correct format";
+			}
 		}
 	}
 
 	instance.pc += magic_size;
-	bool hasSymbols = true;
 	return hasSymbols;
 }
 

@@ -1,5 +1,6 @@
 #include "InstructionSet.h"
 
+std::vector<std::function<void()>> syscall_lookup;
 std::vector<INSTRUCTION> opcode_lookup =
 {
 	{ iPUSH, "PUSH",		1 },
