@@ -13,9 +13,11 @@ public:
 	uint8_t sp = 0;
 	std::vector<uint32_t> stack;
 
-	std::vector<uint8_t*> varibles;
 	std::vector<uint32_t> meta;
-	std::vector<std::string> symbols;
+	std::vector<uint8_t*> varibles;
+
+	std::vector<uint8_t> symbols_length;
+	std::vector<uint8_t*> symbols;
 };
 
 class VMInstanceBase

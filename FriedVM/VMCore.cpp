@@ -32,7 +32,46 @@ void VMCore::Parse()
 		instance.meta.push_back(length);
 		instance.varibles.push_back(buffer);
 	}
-	//instance.pc = instructionStart;
+	if (hasSymbols && instance.pc == instructionStart) //symbols
+	{
+		totalLength = symbolsStart;
+		std::vector<uint8_t> symbol_buffer;
+		while (totalLength < instance.bytecode.size())
+		{
+			symbol_buffer.clear();
+			uint8_t length = 0;
+			while(totalLength+length < instance.bytecode.size())
+			{
+				uint8_t &byte = instance.bytecode.at(totalLength+length);
+				bool isUppercase = byte >= 0x41 && byte <= 0x5A;
+				bool isLowercase = byte >= 0x61 && byte <= 0x7A;
+				bool isUnderScore = byte == 0x5F;
+
+				if (isUppercase || isLowercase || isUnderScore)
+				{
+					symbol_buffer.push_back(byte);
+					length++;
+				}
+				else if (byte == symbolSplitCar)
+				{
+					uint8_t* buffer = new uint8_t[length];
+					for (size_t i = 0; i < length; i++)
+					{
+						buffer[i] = instance.bytecode[totalLength + i];
+					}
+					totalLength += length;
+					totalLength++; //split char
+					instance.symbols.push_back(buffer);
+					instance.symbols_length.push_back(length);
+					break;
+				}
+				else
+				{
+					DIE << "The symbol at position " << NUM(totalLength) << " has inncorrect char (" << byte << ") at index " << NUM(length);
+				}
+			}
+		}
+	}
 	while(instance.pc < constPoolStart) //instructions section
 	{
 		INSTRUCTION instruction = binaryApi.GetInstruction();
@@ -48,18 +87,6 @@ void VMCore::Parse()
 		auto params = binaryApi.GetParams(instruction);
 		instruction.execute(params);
 	}
-	if (!hasSymbols || symbolsStart == 0) return;
-	//while (instance.pc < instance.bytecode.size())
-	//{
-	//	std::vector<char> symbolBuffer;
-	//	do
-	//	{
-	//		symbolBuffer.push_back(instance.bytecode[instance.pc]);
-	//	}
-	//	while (instance.bytecode[instance.pc] != 0xBB);
-	//	instance.symbols.push_back(symbolBuffer);
-	//	instance.pc++;
-	//}
 }
 uint32_t VMCore::pop()
 {
@@ -112,13 +139,11 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_CLEAR));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_READ));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PRINT));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_DUMP));
 #pragma endregion
-
 }
 
 #pragma region Instructions
-
-
 void VMCore::PUSH(uint32_t params[])
 {
 	push(params[0]);
@@ -239,9 +264,8 @@ void VMCore::SYSCALL(uint32_t params[])
 }
 void VMCore::EXIT(uint32_t params[])
 {
-	auto exitCode = pop();
-	DIE << "Exit was called with code: " << NUM(exitCode);
-	//instance.
+	uint32_t exitCode = pop();
+	printf("\n\nExit was called with code: %u\n", exitCode);
 	exit(exitCode);
 }
 #pragma endregion
@@ -268,6 +292,21 @@ void VMCore::SYS_PRINT()
 	uint8_t *data = instance.varibles.at(idx_addr);
 	uint32_t length = instance.meta.at(idx_addr);
 	print_raw(data, length);
+}
+void VMCore::SYS_DUMP()
+{
+	auto idx_addr = pop();
+
+	uint8_t* symbol_data = instance.symbols.at(idx_addr);
+	uint8_t symbol_length = instance.symbols_length.at(idx_addr);
+
+	uint8_t* var_data = instance.varibles.at(idx_addr);
+	uint32_t var_length = instance.meta.at(idx_addr);
+	printf("symbol: \"");
+	print_raw(symbol_data, symbol_length);
+	printf("\" has value: \"");
+	print_raw(var_data, var_length);
+	printf("\".");
 }
 #pragma endregion
 #pragma region Syscall_helpers

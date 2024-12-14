@@ -61,6 +61,7 @@ private:
 	void SYS_CLEAR();
 	void SYS_READ();
 	void SYS_PRINT();
+	void SYS_DUMP();
 #pragma endregion
 #pragma region Syscall_helpers
 	void print_raw(uint8_t* data, uint32_t length);

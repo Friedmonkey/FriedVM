@@ -8,6 +8,7 @@ class ErrorLogMessage : public std::basic_ostringstream<char>
 public:
 	~ErrorLogMessage()
 	{
+		fflush(stdout);
 		fprintf(stderr, "\n\nFatal error: %s\n", str().c_str());
 		exit(EXIT_FAILURE);
 	}
