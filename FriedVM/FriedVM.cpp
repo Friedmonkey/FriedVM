@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 
 #else
 #ifdef DEBUG_PATH
-    string filePath = DEBUG_PATH;
+    string filePath = DEBUG_FILE_PATH;
 
 
 #else
