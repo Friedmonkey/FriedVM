@@ -13,6 +13,7 @@ void VMCore::Parse()
 		symbolsStart = binaryApi.ParseAddress();
 	}
 	uint64_t totalLength = 0;
+#pragma region Meta & Symbols
 	while(instance.pc < instructionStart) //meta section
 	{
 		uint64_t length = binaryApi.ParseMeta();
@@ -71,7 +72,7 @@ void VMCore::Parse()
 			}
 		}
 	}
-
+#pragma endregion
 	if (instance.symbols.size() != instance.symbols_length.size())
 		DIE << "symbol size does not match symbol_length size";
 	if (instance.varibles.size() != instance.meta.size())
@@ -90,7 +91,7 @@ void VMCore::Parse()
 		}
 
 		auto params = binaryApi.GetParams(instruction);
-		instruction.execute(params);
+		instruction.execute(params, instruction.immediate, instruction.arg_size);
 	}
 }
 uint32_t VMCore::pop()
@@ -102,12 +103,14 @@ uint32_t VMCore::pop()
 	instance.sp--;
 	uint32_t value = instance.stack.at(instance.sp);
 	instance.stack.pop_back();
+	instance.stack_type.pop_back();
 	return value;
 }
-void VMCore::push(uint32_t value)
+void VMCore::push(uint32_t value, bool immediate, uint8_t arg_size)
 {
 	instance.sp++;
 	instance.stack.push_back(value);
+	instance.stack_type.push_back((immediate << 7) | (arg_size & 0b01111111));
 }
 void VMCore::syscall(uint32_t index)
 {
@@ -115,7 +118,26 @@ void VMCore::syscall(uint32_t index)
 		DIE << "Syscall at index "<< NUM(index) << " does not exist!";
 	syscall_lookup.at(index)();
 }
-#define MAKE_EXECUTE(method) [this](uint32_t params[]) { this->method(params); }
+Value VMCore::getVar()
+{
+	uint8_t type = instance.stack_type.at(instance.sp-1);
+	bool immediate = (type & 0b10000000) >> 7;
+
+	uint32_t value = pop();
+	if (immediate)
+	{
+		uint32_t arg_size = static_cast<uint32_t>(type & 0b01111111);
+		uint8_t *data = binaryApi.CastFromUint32(value, arg_size);
+		return Value(data, arg_size, true);
+	}
+	else
+	{
+		uint8_t* data = instance.varibles.at(value);
+		uint32_t &length = instance.meta.at(value);
+		return Value(data, length, false, value);
+	}
+}
+#define MAKE_EXECUTE(method) [this](uint32_t* params, bool immediate, uint8_t arg_size) { this->method(params, immediate, arg_size); }
 #define MAKE_SYS_EXECUTE(method) [this]() { this->method(); }
 
 VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi(newInstance)
@@ -149,15 +171,15 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 }
 
 #pragma region Instructions
-void VMCore::PUSH(uint32_t params[])
+void VMCore::PUSH(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	push(params[0]);
+	push(params[0], immediate, arg_size);
 }
-void VMCore::POP(uint32_t params[])
+void VMCore::POP(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	pop();
 }
-void VMCore::DUP(uint32_t params[])
+void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	if (instance.sp == 0)
 	{
@@ -166,50 +188,50 @@ void VMCore::DUP(uint32_t params[])
 	auto val1 = instance.stack.at(instance.sp);
 	push(val1);
 }
-void VMCore::ADD(uint32_t params[])
+void VMCore::ADD(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 + val2);
 }
-void VMCore::SUB(uint32_t params[])
+void VMCore::SUB(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 - val2);
 }
-void VMCore::MUL(uint32_t params[])
+void VMCore::MUL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 * val2);
 }
-void VMCore::DIV(uint32_t params[])
+void VMCore::DIV(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 / val2);
 }
-void VMCore::AND(uint32_t params[])
+void VMCore::AND(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 & val2);
 }
-void VMCore::OR(uint32_t params[])
+void VMCore::OR(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
 	push(val1 | val2);
 }
-void VMCore::NOT(uint32_t params[])
+void VMCore::NOT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	if (val1 == iFALSE) push(iTRUE);
 	else if (val1 == iTRUE) push(iFALSE);
 	else DIE << "Stack value expected a bool (0x00 or 0x01) but got " << HEX(val1) << "instead!";
 }
-void VMCore::EQ(uint32_t params[])
+void VMCore::EQ(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
@@ -218,7 +240,7 @@ void VMCore::EQ(uint32_t params[])
 	else
 		push(iFALSE);
 }
-void VMCore::NEQ(uint32_t params[])
+void VMCore::NEQ(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
@@ -227,7 +249,7 @@ void VMCore::NEQ(uint32_t params[])
 	else
 		push(iFALSE);
 }
-void VMCore::GT(uint32_t params[])
+void VMCore::GT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
@@ -236,7 +258,7 @@ void VMCore::GT(uint32_t params[])
 	else
 		push(iFALSE);
 }
-void VMCore::GTEQ(uint32_t params[])
+void VMCore::GTEQ(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
@@ -245,7 +267,7 @@ void VMCore::GTEQ(uint32_t params[])
 	else
 		push(iFALSE);
 }
-void VMCore::LT(uint32_t params[])
+void VMCore::LT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
@@ -254,7 +276,7 @@ void VMCore::LT(uint32_t params[])
 	else
 		push(iFALSE);
 }
-void VMCore::LTEQ(uint32_t params[])
+void VMCore::LTEQ(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto val1 = pop();
 	auto val2 = pop();
@@ -263,11 +285,11 @@ void VMCore::LTEQ(uint32_t params[])
 	else
 		push(iFALSE);
 }
-void VMCore::SYSCALL(uint32_t params[])
+void VMCore::SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	syscall(params[0]);
 }
-void VMCore::EXIT(uint32_t params[])
+void VMCore::EXIT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	uint32_t exitCode = pop();
 	printf("\n\nExit was called with code: %u\n", exitCode);
@@ -293,31 +315,33 @@ void VMCore::SYS_READ()
 
 void VMCore::SYS_PRINT()
 {
-	auto idx_addr = pop();
-	uint8_t *data = instance.varibles.at(idx_addr);
-	uint32_t length = instance.meta.at(idx_addr);
-	print_raw(data, length);
+	Value val = getVar();
+	print_raw(val);
 }
 void VMCore::SYS_DUMP()
 {
-	if (!instance.hasSymbols)
-		DIE << "Cant dump varible because symbols are not included";
+	//if (!instance.hasSymbols)
+	//	DIE << "Cant dump varible because symbols are not included";
 
-	auto idx_addr = pop();
-
-	uint8_t* symbol_data = instance.symbols.at(idx_addr);
-	uint8_t symbol_length = instance.symbols_length.at(idx_addr);
-
-	uint8_t* var_data = instance.varibles.at(idx_addr);
-	uint32_t var_length = instance.meta.at(idx_addr);
+	Value data = getVar();
+	Value symbol = Value(data.data, std::min(data.length, (uint32_t)4)); //if we didnt use a label but imidate value, we just show the start
+	if (!data.immediate && instance.hasSymbols)
+	{	//if there is a label availible
+		symbol.data = instance.symbols.at(data.index);
+		symbol.length = instance.symbols_length.at(data.index);
+	}
 	printf("symbol: \"");
-	print_raw(symbol_data, symbol_length);
+	print_raw(symbol);
 	printf("\" has value: \"");
-	print_raw(var_data, var_length);
+	print_raw(data);
 	printf("\".");
 }
 #pragma endregion
 #pragma region Syscall_helpers
+void VMCore::print_raw(Value val)
+{
+	print_raw(val.data, val.length);
+}
 void VMCore::print_raw(uint8_t* data, uint32_t length) {
 	for (uint32_t i = 0; i < length; ++i) {
 		putchar(data[i]);  // Print each byte as a character

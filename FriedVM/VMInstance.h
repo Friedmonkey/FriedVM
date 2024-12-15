@@ -12,6 +12,7 @@ public:
 
 	uint8_t sp = 0;
 	std::vector<uint32_t> stack;
+	std::vector<uint8_t> stack_type;
 
 	std::vector<uint32_t> meta;
 	std::vector<uint8_t*> varibles;

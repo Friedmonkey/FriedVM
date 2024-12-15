@@ -20,8 +20,28 @@ public:
 	const uint8_t paramCount;
 	uint8_t arg_size; // Argument size (0–3)
 	bool immediate;   // Immediate flag
-	std::function<void(uint32_t[])> execute;
+	std::function<void(uint32_t* params, bool immediate, uint8_t arg_size)> execute;
 	//void (*execute)(uint8_t params[]);
+};
+
+//struct OpcodeArguments
+//{
+//	uint32_t *params;
+//	bool immediate;
+//	uint8_t arg_size;
+//};
+
+struct Value
+{
+public:
+	Value(uint8_t *pData, uint32_t mLength, bool mImmediate = true, uint32_t mIndex = 0) : data(pData), length(mLength), immediate(mImmediate), index(mIndex)
+	{
+
+	}
+	uint8_t *data;
+	uint32_t length;
+	uint32_t index;
+	bool immediate;
 };
 
 #define iPUSH		0x00

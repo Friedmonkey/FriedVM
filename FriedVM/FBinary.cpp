@@ -99,6 +99,18 @@ uint64_t FBinary::ParseAddress()
 	return CastToUint64(ReadBytes(instance.header_size), instance.header_size);
 }
 
+uint8_t* FBinary::CastFromUint32(const uint32_t uint32, size_t count)
+{
+	uint8_t* buffer = new uint8_t[count];  // Allocate memory for the byte array
+
+	for (size_t i = 0; i < count; ++i)
+	{
+		// Extract each byte by shifting and masking
+		buffer[i] = static_cast<uint8_t>((uint32 >> (8 * i)) & 0xFF); // Shift and mask to get the byte
+	}
+
+	return buffer;
+}
 uint32_t FBinary::CastToUint32(const uint8_t* byteArray, size_t count)
 {
 	uint32_t result = 0;
