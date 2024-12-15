@@ -23,7 +23,7 @@ std::vector<INSTRUCTION> opcode_lookup =
 	{ iNEQ, "NEQ",			0 },
 	{ iGT, "GT",			0 },
 	{ iGTEQ, "GTEQ",		0 },
-	{ iLT, "LTEQ",			0 },
+	{ iLT, "LT",			0 },
 	{ iLTEQ, "LTEQ",		0 },
 	{ iJMP, "JMP",			1 },
 	{ iJMP_IF, "JMP_IF",	1 },
