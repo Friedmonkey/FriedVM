@@ -16,6 +16,10 @@ public:
 	std::vector<uint32_t> meta;
 	std::vector<uint8_t*> varibles;
 
+	uint8_t version = 1;
+	uint8_t header_size = 8;
+	uint8_t meta_size = 4;
+
 	bool hasSymbols;
 	std::vector<uint8_t> symbols_length;
 	std::vector<uint8_t*> symbols;

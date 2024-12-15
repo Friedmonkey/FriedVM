@@ -3,7 +3,7 @@
 //parse the magic + its version and if it says it has symbols included
 // version is either 1,2,3,4,5,6,7,8,9
 //the same version but with symbols is !,@,#,$,%,^,&,*,(
-bool FBinary::ParseMagic()
+void FBinary::ParseMagic()
 {
 	bool hasSymbols = false;
 	auto magic_size = sizeof(file_magic) / sizeof(*file_magic);
@@ -17,15 +17,17 @@ bool FBinary::ParseMagic()
 	{
 		if (i == magic_size-1) //the version
 		{
+			constexpr uint8_t size_map[4] = { 1, 2, 4, 8 };
 			uint8_t version_byte = instance.bytecode[instance.pc + i];
-			uint8_t version_type = version_byte  & 0xF0;
-			//uint8_t version_num = version_byte & 0x0F;
-			if (version_type == 0x20) //special chars, !,@,# and so on
-				hasSymbols = true;
-			else if (version_type == 0x30) //numbers, 1,2,3 and so on
-				hasSymbols = true;
-			else
-				DIE << "Unknown version type:" << HEX(version_type) << " expected either 0x20 for sumbols or 0x30 for no symbols";
+			uint8_t header_size = size_map[(version_byte & 0b11000000) >> 6];
+			uint8_t meta_size = size_map[(version_byte & 0b00110000) >> 4];
+			hasSymbols = (version_byte & 0b00001000) >> 3;
+			uint8_t version = (version_byte & 0b00000111);
+
+			instance.header_size = header_size;
+			instance.meta_size = meta_size;
+			instance.hasSymbols = hasSymbols;
+			instance.version = version;
 		}
 		else
 		{
@@ -37,7 +39,6 @@ bool FBinary::ParseMagic()
 	}
 
 	instance.pc += magic_size;
-	return hasSymbols;
 }
 
 INSTRUCTION FBinary::GetInstruction()
@@ -91,11 +92,11 @@ uint32_t* FBinary::GetParams(INSTRUCTION &instruction)
 
 uint64_t FBinary::ParseMeta()
 {
-	return CastToUint32(ReadBytes(4), 4);
+	return CastToUint64(ReadBytes(instance.meta_size), instance.meta_size);
 }
 uint64_t FBinary::ParseAddress()
 {
-	return CastToUint64(ReadBytes(8), 8);
+	return CastToUint64(ReadBytes(instance.header_size), instance.header_size);
 }
 
 uint32_t FBinary::CastToUint32(const uint8_t* byteArray, size_t count)

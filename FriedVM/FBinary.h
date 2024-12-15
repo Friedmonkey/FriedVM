@@ -8,7 +8,7 @@ public:
 	FBinary(VMInstance& newInstance) : VMInstanceBase(newInstance)
 	{
 	}
-	bool ParseMagic();
+	void ParseMagic();
 	INSTRUCTION GetInstruction();
 	uint32_t* GetParams(INSTRUCTION& instruction);
 	uint64_t ParseMeta();

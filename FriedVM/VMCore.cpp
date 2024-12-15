@@ -4,7 +4,7 @@
 
 void VMCore::Parse()
 {
-	instance.hasSymbols = binaryApi.ParseMagic();
+	binaryApi.ParseMagic();
 	uint64_t instructionStart = binaryApi.ParseAddress();
 	uint64_t constPoolStart = binaryApi.ParseAddress();
 	uint64_t symbolsStart = 0;
@@ -15,7 +15,7 @@ void VMCore::Parse()
 	uint64_t totalLength = 0;
 	while(instance.pc < instructionStart) //meta section
 	{
-		uint32_t length = binaryApi.ParseMeta();
+		uint64_t length = binaryApi.ParseMeta();
 		auto position = totalLength + constPoolStart;
 		if (instance.bytecode.size() < (position + length))
 		{
