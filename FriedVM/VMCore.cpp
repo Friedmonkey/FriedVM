@@ -43,11 +43,12 @@ void VMCore::Parse()
 			while(totalLength+length < instance.bytecode.size())
 			{
 				uint8_t &byte = instance.bytecode.at(totalLength+length);
+				bool isNumber = byte >= 0x30 && byte <= 0x39;
 				bool isUppercase = byte >= 0x41 && byte <= 0x5A;
 				bool isLowercase = byte >= 0x61 && byte <= 0x7A;
 				bool isUnderScore = byte == 0x5F;
 
-				if (isUppercase || isLowercase || isUnderScore)
+				if (isNumber || isUppercase || isLowercase || isUnderScore)
 				{
 					symbol_buffer.push_back(byte);
 					length++;
@@ -185,7 +186,7 @@ void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 	{
 		DIE << "Nothing on the stack to duplicate! At program index " << HEX(instance.pc);
 	}
-	auto val1 = instance.stack.at(instance.sp);
+	auto val1 = instance.stack.at(instance.sp-1);
 	push(val1);
 }
 void VMCore::ADD(uint32_t* params, bool immediate, uint8_t arg_size)
