@@ -9,6 +9,7 @@ class VMCore : VMInstanceBase
 public:
 	VMCore(VMInstance& newInstance);
 	void Parse();
+	bool Peek_stack(uint32_t &rValue, int offset = 0);
 private:
 	FBinary binaryApi;
 	//FStack stackApi;
@@ -16,6 +17,7 @@ private:
 	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 1);
 	void syscall(uint32_t index);
 	Value getVar();
+	void Jump(uint32_t offset, bool immidiate);
 #pragma region Instructions
 	void PUSH(uint32_t* params, bool immediate, uint8_t arg_size);
 	void POP(uint32_t* params, bool immediate, uint8_t arg_size);
@@ -32,6 +34,10 @@ private:
 	void SUB(uint32_t* params, bool immediate, uint8_t arg_size);
 	void MUL(uint32_t* params, bool immediate, uint8_t arg_size);
 	void DIV(uint32_t* params, bool immediate, uint8_t arg_size);
+
+	void INC(uint32_t* params, bool immediate, uint8_t arg_size);
+	void DEC(uint32_t* params, bool immediate, uint8_t arg_size);
+
 	
 	void AND(uint32_t* params, bool immediate, uint8_t arg_size);
 	void OR(uint32_t* params, bool immediate, uint8_t arg_size);
@@ -44,8 +50,9 @@ private:
 	void LT(uint32_t* params, bool immediate, uint8_t arg_size);
 	void LTEQ(uint32_t* params, bool immediate, uint8_t arg_size);
 	
-	//void JMP(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void JMP_IF(uint32_t* params, bool immediate, uint8_t arg_size);
+	void JUMP(uint32_t* params, bool immediate, uint8_t arg_size);
+	void JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size);
+	void JUMP_IF_STACK(uint32_t* params, bool immediate, uint8_t arg_size);
 
 	//void CALL(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void CALL_IF(uint32_t* params, bool immediate, uint8_t arg_size);

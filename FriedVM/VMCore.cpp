@@ -5,7 +5,7 @@
 void VMCore::Parse()
 {
 	binaryApi.ParseMagic();
-	uint64_t instructionStart = binaryApi.ParseAddress();
+	instance.instructionStart= binaryApi.ParseAddress();
 	uint64_t constPoolStart = binaryApi.ParseAddress();
 	uint64_t symbolsStart = 0;
 	if (instance.hasSymbols)
@@ -14,7 +14,7 @@ void VMCore::Parse()
 	}
 	uint64_t totalLength = 0;
 #pragma region Meta & Symbols
-	while(instance.pc < instructionStart) //meta section
+	while(instance.pc < instance.instructionStart) //meta section
 	{
 		uint64_t length = binaryApi.ParseMeta();
 		auto position = totalLength + constPoolStart;
@@ -32,7 +32,7 @@ void VMCore::Parse()
 		instance.meta.push_back(length);
 		instance.varibles.push_back(buffer);
 	}
-	if (instance.hasSymbols && instance.pc == instructionStart) //symbols
+	if (instance.hasSymbols && instance.pc == instance.instructionStart) //symbols
 	{
 		totalLength = symbolsStart;
 		std::vector<uint8_t> symbol_buffer;
@@ -92,7 +92,19 @@ void VMCore::Parse()
 		}
 
 		auto params = binaryApi.GetParams(instruction);
-		instruction.execute(params, instruction.immediate, instruction.arg_size);
+   		instruction.execute(params, instruction.immediate, instruction.arg_size);
+	}
+}
+bool VMCore::Peek_stack(uint32_t &rValue, int offset)
+{
+	if (instance.sp == 0)
+	{
+		return false;
+	}
+	else
+	{
+		rValue = instance.stack.at(instance.sp-1);
+		return true;
 	}
 }
 uint32_t VMCore::pop()
@@ -138,6 +150,15 @@ Value VMCore::getVar()
 		return Value(data, length, false, value);
 	}
 }
+//setvar
+
+void VMCore::Jump(uint32_t offset, bool immidiate)
+{
+	//if (immediate)
+	//	instance.pc += params[0];
+	//else
+		instance.pc = instance.instructionStart + offset;
+}
 #define MAKE_EXECUTE(method) [this](uint32_t* params, bool immediate, uint8_t arg_size) { this->method(params, immediate, arg_size); }
 #define MAKE_SYS_EXECUTE(method) [this]() { this->method(); }
 
@@ -153,14 +174,22 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iMUL].execute = MAKE_EXECUTE(MUL);
 	opcode_lookup[iDIV].execute = MAKE_EXECUTE(DIV);
 
+	opcode_lookup[iINC].execute = MAKE_EXECUTE(INC);
+	opcode_lookup[iDEC].execute = MAKE_EXECUTE(DEC);
+
 	opcode_lookup[iAND].execute = MAKE_EXECUTE(AND);
 	opcode_lookup[iOR].execute = MAKE_EXECUTE(OR);
 	opcode_lookup[iNOT].execute = MAKE_EXECUTE(NOT);
 
 	opcode_lookup[iEQ].execute = MAKE_EXECUTE(EQ);
 
+	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(JUMP);
+	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(JUMP_IF);
+	opcode_lookup[iJUMP_IF_STACK].execute = MAKE_EXECUTE(JUMP_IF_STACK);
+
 	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(SYSCALL);
 	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(EXIT);
+
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));
@@ -191,32 +220,42 @@ void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::ADD(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	push(val1 + val2);
 }
 void VMCore::SUB(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	push(val1 - val2);
 }
 void VMCore::MUL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	push(val1 * val2);
 }
 void VMCore::DIV(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	push(val1 / val2);
+}
+void VMCore::INC(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	auto val = pop();
+	push(++val);
+}
+void VMCore::DEC(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	auto val = pop();
+	push(--val);
 }
 void VMCore::AND(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	push(val1 & val2);
 }
 void VMCore::OR(uint32_t* params, bool immediate, uint8_t arg_size)
@@ -252,8 +291,8 @@ void VMCore::NEQ(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::GT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	if (val1 > val2)
 		push(iTRUE);
 	else
@@ -261,8 +300,8 @@ void VMCore::GT(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::GTEQ(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	if (val1 >= val2)
 		push(iTRUE);
 	else
@@ -270,8 +309,8 @@ void VMCore::GTEQ(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::LT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	if (val1 < val2)
 		push(iTRUE);
 	else
@@ -279,12 +318,34 @@ void VMCore::LT(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::LTEQ(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
 	auto val2 = pop();
+	auto val1 = pop();
 	if (val1 <= val2)
 		push(iTRUE);
 	else
 		push(iFALSE);
+}
+void VMCore::JUMP(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Jump(params[0], immediate);
+}
+void VMCore::JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	uint32_t value = 0;
+	if (Peek_stack(value))
+	{
+		if (value == iTRUE)
+			Jump(params[0], immediate);
+	}
+}
+void VMCore::JUMP_IF_STACK(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	uint32_t value = 0;
+	if (Peek_stack(value))
+	{
+		if (value == params[0])
+			Jump(params[1], immediate);
+	}
 }
 void VMCore::SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size)
 {

@@ -66,13 +66,17 @@ public:
 #define iGTEQ		0x13
 #define iLT			0x14
 #define iLTEQ		0x15
-#define iJMP		0x16
-#define iJMP_IF		0x17
+#define iJUMP		0x16
+#define iJUMP_IF	0x17
 #define iCALL		0x18
 #define iCALL_IF	0x19
 #define iRET		0x1A
 #define iSYSCALL	0x1B
 #define iEXIT		0x1C
+
+#define iJUMP_IF_STACK	0x1D
+#define iINC	0x1E
+#define iDEC	0x1F
 
 
 #define iTRUE		0x01

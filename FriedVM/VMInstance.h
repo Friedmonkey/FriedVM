@@ -17,6 +17,7 @@ public:
 	std::vector<uint32_t> meta;
 	std::vector<uint8_t*> varibles;
 
+	uint64_t instructionStart = 0;
 	uint8_t version = 1;
 	uint8_t header_size = 8;
 	uint8_t meta_size = 4;
