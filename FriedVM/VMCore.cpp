@@ -218,21 +218,25 @@ void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::MATH(uint32_t* params, bool immediate, uint8_t arg_size)
 {
+	uint32_t val1,val2 = 0;
 	auto math_mode = params[0];
-	auto val2 = pop(); // Second operand
-	auto val1 = pop(); // First operand
-	uint32_t result;
+	if (math_mode != mmINC && math_mode != mmDEC)
+		val2 = pop(); // Second operand
+	val1 = pop(); // First operand
+	uint32_t result = 0;
 
 	switch (math_mode) {
 		case mmADD: result = val1 + val2; break;
 		case mmSUB: result = val1 - val2; break;
-		case mmINC: push(val1); result = val1 + 1; break;
-		case mmDEC: push(val1); result = val1 - 1; break;
+		case mmINC: result = val1 + 1; break;
+		case mmDEC: result = val1 - 1; break;
 		case mmMUL: result = val1 * val2; break;
 		case mmDIV: result = val1 / val2; break;
 		//case mmPOW: result = pow(val1, val2); break;
 		//case mmROOT: result = pow(val1, 1.0 / val2); break;
 		//case mmSQRT: result = sqrt(val1); break;
+		default:
+			DIE << "Math mode with index " << HEX(math_mode) << " does not exist!";
 	}
 	push(result);
 }
@@ -260,7 +264,7 @@ void VMCore::COMP(uint32_t* params, bool immediate, uint8_t arg_size)
 	auto compare_mode = params[0];
 	auto val2 = pop(); // Second operand
 	auto val1 = pop(); // First operand
-	bool result;
+	bool result = false;
 	switch (compare_mode) {
 		case cmGT: result = (val1 > val2); break;
 		case cmGTE: result = (val1 >= val2); break;
@@ -268,6 +272,8 @@ void VMCore::COMP(uint32_t* params, bool immediate, uint8_t arg_size)
 		case cmLTE: result = (val1 <= val2); break;
 		case cmEQ: result = (val1 == val2); break;
 		case cmNEQ: result = (val1 != val2); break;
+		default:
+			DIE << "Compare mode with index " << HEX(compare_mode) << " does not exist!";
 	}
 	if (result)
 		push(iTRUE);
