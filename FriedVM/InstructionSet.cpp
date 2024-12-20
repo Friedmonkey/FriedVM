@@ -1,5 +1,6 @@
 #include "InstructionSet.h"
 
+std::vector<std::function<void()>> syscall_lookup;
 std::vector<INSTRUCTION> opcode_lookup =
 {
 	{ iPUSH, "PUSH",		1 },
@@ -21,12 +22,18 @@ std::vector<INSTRUCTION> opcode_lookup =
 	{ iEQ, "EQ",			0 },
 	{ iNEQ, "NEQ",			0 },
 	{ iGT, "GT",			0 },
-	{ iLS, "LS",			0 },
-	{ iJMP, "JMP",			1 },
-	{ iJMP_IF, "JMP_IF",	1 },
+	{ iGTEQ, "GTEQ",		0 },
+	{ iLT, "LT",			0 },
+	{ iLTEQ, "LTEQ",		0 },
+	{ iJUMP, "JUMP",		1 },
+	{ iJUMP_IF, "JUMP_IF",	1 },
 	{ iCALL, "CALL",		1 },
 	{ iCALL_IF, "CALL_IF",	1 },
 	{ iRET, "RET",			0 },
 	{ iSYSCALL, "SYSCALL",	1 },
 	{ iEXIT, "EXIT",		0 },
+
+	{ iJUMP_IF_STACK, "JUMP_IF_STACK",		2 },
+	{ iINC, "INC",			0 },
+	{ iDEC, "DEC",			0 },
 };

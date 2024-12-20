@@ -7,11 +7,24 @@
 struct VMInstance
 {
 public:
-	uint8_t pc = 0;
+	uint64_t pc = 0;
 	std::vector<uint8_t> bytecode;
 
 	uint8_t sp = 0;
-	std::vector<uint8_t> stack;
+	std::vector<uint32_t> stack;
+	std::vector<uint8_t> stack_type;
+
+	std::vector<uint32_t> meta;
+	std::vector<uint8_t*> varibles;
+
+	uint64_t instructionStart = 0;
+	uint8_t version = 1;
+	uint8_t header_size = 8;
+	uint8_t meta_size = 4;
+
+	bool hasSymbols;
+	std::vector<uint8_t> symbols_length;
+	std::vector<uint8_t*> symbols;
 };
 
 class VMInstanceBase

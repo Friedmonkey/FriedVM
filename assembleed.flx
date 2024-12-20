@@ -1,0 +1,21 @@
+FXE1 //magic 										4 bytes
+20 00 00 00 00 00 00 00  //code offset header 		8 bytes
+27 00 00 00 00 00 00 00  //data offset header 		8 bytes
+32 00 00 00 00 00 00 00  //symbols offset header 	8 bytes
+start noting length of objs in pool
+0B 00 00 00											4 bytes
+
+code: //code offset should point here and this label is not needed
+PUSH "msg"								2 bytes
+SYSCALL "print"							2 bytes print is at index 3
+PUSH 0									2 bytes
+EXIT									1 byte
+
+
+
+data: //data offset should point here and this label is not needed
+"Hello World"							11 bytes
+
+//WE CAN SPLIT THESE BECAUSE THESE SYMBOLS ARE ONLY SIMPLE CHARACTERS
+symbols: //symbols offset should point here and this label is not needed
+"msg"»									4 bytes

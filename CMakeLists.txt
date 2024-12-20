@@ -11,5 +11,11 @@ endif()
 
 project ("FriedVM")
 
+# Get the full path to the file "assembled.fxe" in the current source directory
+set(DEBUG_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assembled.fxe")
+
+# Pass the path to C++ code as a preprocessor definition
+add_definitions(-DDEBUG_FILE_PATH="${DEBUG_PATH}")
+
 # Include sub-projects.
 add_subdirectory ("FriedVM")

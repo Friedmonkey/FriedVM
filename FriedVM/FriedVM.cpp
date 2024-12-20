@@ -15,14 +15,20 @@ int main(int argc, char* argv[])
     instance.bytecode.assign(debugBytecode, debugBytecode + sizeof(debugBytecode));
 
 #else
+#ifdef DEBUG_PATH
+    string filePath = DEBUG_FILE_PATH;
+
+
+#else
     // In release mode: Load bytecode from a file
     if (argc < 2)
     {
         cerr << "Usage: " << argv[0] << " <file_path>" << endl;
         return 1;
     }
-
     string filePath = argv[1];
+#endif
+
     ifstream inputFile(filePath, ios::binary);
     if (!inputFile)
     {
