@@ -9,6 +9,7 @@ class VMCore : VMInstanceBase
 public:
 	VMCore(VMInstance& newInstance);
 	void Parse();
+	void Run(uint64_t start, uint64_t end);
 	bool Peek_stack(uint32_t &rValue, int offset = 0);
 private:
 	FBinary binaryApi;

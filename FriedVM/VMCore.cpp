@@ -79,7 +79,12 @@ void VMCore::Parse()
 	if (instance.varibles.size() != instance.meta.size())
 		DIE << "varible size does not match meta size";
 
-	while(instance.pc < constPoolStart) //instructions section
+	Run(instance.pc, constPoolStart);
+}
+void VMCore::Run(uint64_t start, uint64_t end)
+{
+	instance.pc = start;
+	while (instance.pc < end) //instructions section
 	{
 		INSTRUCTION instruction = binaryApi.GetInstruction();
 		if (instruction.execute == nullptr)
@@ -92,7 +97,7 @@ void VMCore::Parse()
 		}
 
 		auto params = binaryApi.GetParams(instruction);
-   		instruction.execute(params, instruction.immediate, instruction.arg_size);
+		instruction.execute(params, instruction.immediate, instruction.arg_size);
 	}
 }
 bool VMCore::Peek_stack(uint32_t &rValue, int offset)
