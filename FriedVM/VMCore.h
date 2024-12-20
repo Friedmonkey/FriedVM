@@ -31,29 +31,17 @@ private:
 	//void MOV_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void DEL(uint32_t* params, bool immediate, uint8_t arg_size);
 
-	void ADD(uint32_t* params, bool immediate, uint8_t arg_size);
-	void SUB(uint32_t* params, bool immediate, uint8_t arg_size);
-	void MUL(uint32_t* params, bool immediate, uint8_t arg_size);
-	void DIV(uint32_t* params, bool immediate, uint8_t arg_size);
 
-	void INC(uint32_t* params, bool immediate, uint8_t arg_size);
-	void DEC(uint32_t* params, bool immediate, uint8_t arg_size);
+	void MATH(uint32_t* params, bool immediate, uint8_t arg_size);
 
-	
 	void AND(uint32_t* params, bool immediate, uint8_t arg_size);
 	void OR(uint32_t* params, bool immediate, uint8_t arg_size);
 	void NOT(uint32_t* params, bool immediate, uint8_t arg_size);
 	
-	void EQ(uint32_t* params, bool immediate, uint8_t arg_size);
-	void NEQ(uint32_t* params, bool immediate, uint8_t arg_size);
-	void GT(uint32_t* params, bool immediate, uint8_t arg_size);
-	void GTEQ(uint32_t* params, bool immediate, uint8_t arg_size);
-	void LT(uint32_t* params, bool immediate, uint8_t arg_size);
-	void LTEQ(uint32_t* params, bool immediate, uint8_t arg_size);
+	void COMP(uint32_t* params, bool immediate, uint8_t arg_size);
 	
 	void JUMP(uint32_t* params, bool immediate, uint8_t arg_size);
 	void JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size);
-	void JUMP_IF_STACK(uint32_t* params, bool immediate, uint8_t arg_size);
 
 	//void CALL(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void CALL_IF(uint32_t* params, bool immediate, uint8_t arg_size);

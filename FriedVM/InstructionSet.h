@@ -53,31 +53,50 @@ public:
 #define iPSH_VAR	0x06
 #define iMOV_VAR	0x07
 #define iDEL		0x08
-#define iADD		0x09
-#define iSUB		0x0A
-#define iMUL		0x0B
-#define iDIV		0x0C
-#define iAND		0x0D
-#define iOR			0x0E
-#define iNOT		0x0F
-#define iEQ			0x10
-#define iNEQ		0x11
-#define iGT			0x12
-#define iGTEQ		0x13
-#define iLT			0x14
-#define iLTEQ		0x15
-#define iJUMP		0x16
-#define iJUMP_IF	0x17
-#define iCALL		0x18
-#define iCALL_IF	0x19
-#define iRET		0x1A
-#define iSYSCALL	0x1B
-#define iEXIT		0x1C
+#define iMATH		0x09
+#define iAND		0x0B
+#define iOR			0x0C
+#define iNOT		0x0D
+#define iCOMP		0x0A
 
-#define iJUMP_IF_STACK	0x1D
-#define iINC	0x1E
-#define iDEC	0x1F
+#define iJUMP		0x0E
+#define iJUMP_IF	0x0F
+#define iCALL		0x10
+#define iCALL_IF	0x11
+#define iRET		0x12
+#define iSYSCALL	0x13
+#define iEXIT		0x14
+//#define i			0x15
+//#define i			0x16
+//#define i			0x17
+//#define i			0x18
+//#define i			0x19
+//#define i			0x1A
+//#define i			0x1B
+//#define i			0x1C
+//
+//#define i			0x1D
+//#define i			0x1E
+//#define i			0x1F
 
+//math Modes
+#define mmADD 0x00
+#define mmSUB 0x01
+#define mmINC 0x02
+#define mmDEC 0x03
+#define mmMUL 0x04
+#define mmDIV 0x05
+#define mmPOW 0x06
+#define mmROOT 0x07
+#define mmSQRT 0x08
+
+//comp Modes
+#define cmGT 0x00
+#define cmGTE 0x01
+#define cmLT 0x02
+#define cmLTE 0x03
+#define cmEQ 0x04
+#define cmNEQ 0x05
 
 #define iTRUE		0x01
 #define iFALSE		0x00
