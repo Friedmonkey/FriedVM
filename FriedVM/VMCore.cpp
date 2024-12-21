@@ -13,8 +13,8 @@ void VMCore::Parse()
 		symbolsStart = binaryApi.ParseAddress();
 	}
 	uint64_t totalLength = 0;
-#pragma region Meta & Symbols
-	while(instance.pc < instance.instructionStart) //meta section
+#pragma region Declares & Symbols
+	while(instance.pc < instance.instructionStart) //declare section
 	{
 		uint64_t length = binaryApi.ParseMeta();
 		auto position = totalLength + constPoolStart;
@@ -31,8 +31,10 @@ void VMCore::Parse()
 
 		instance.meta.push_back(length);
 		instance.varibles.push_back(buffer);
+		instance.declare_size++;
 	}
-	if (instance.hasSymbols && instance.pc == instance.instructionStart) //symbols
+	instance.declare_size--; //size not count
+	if (instance.hasSymbols && instance.pc == instance.instructionStart) //symbol section
 	{
 		totalLength = symbolsStart;
 		std::vector<uint8_t> symbol_buffer;
@@ -136,26 +138,62 @@ void VMCore::syscall(uint32_t index)
 		DIE << "Syscall at index "<< NUM(index) << " does not exist!";
 	syscall_lookup.at(index)();
 }
-Value VMCore::getVar()
+Value VMCore::makeValue(uint32_t value, bool immediate, uint8_t arg_size)
 {
-	uint8_t type = instance.stack_type.at(instance.sp-1);
-	bool immediate = (type & 0b10000000) >> 7;
-
-	uint32_t value = pop();
 	if (immediate)
 	{
-		uint32_t arg_size = static_cast<uint32_t>(type & 0b01111111);
-		uint8_t *data = binaryApi.CastFromUint32(value, arg_size);
-		return Value(data, arg_size, true);
+		uint32_t expanded_arg_size = static_cast<uint32_t>(arg_size);
+		uint8_t* data = binaryApi.CastFromUint32(value, expanded_arg_size);
+		return Value(data, expanded_arg_size, true);
 	}
 	else
 	{
+		uint32_t& length = instance.meta.at(value);
 		uint8_t* data = instance.varibles.at(value);
-		uint32_t &length = instance.meta.at(value);
 		return Value(data, length, false, value);
 	}
 }
-//setvar
+Value VMCore::getVar()
+{
+	if (instance.sp == 0)
+	{
+		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+	}
+	uint8_t type = instance.stack_type.at(instance.sp-1);
+	bool immediate = (type & 0b10000000) >> 7;
+	uint8_t arg_size = type & 0b01111111;
+
+	uint32_t value = pop();
+	return makeValue(value, immediate, arg_size);
+	//if (immediate)
+	//{
+	//	;
+	//	uint8_t *data = binaryApi.CastFromUint32(value, arg_size);
+	//	return Value(data, arg_size, true);
+	//}
+	//else
+	//{
+	//	uint32_t &length = instance.meta.at(value);
+	//	uint8_t* data = instance.varibles.at(value);
+	//	return Value(data, length, false, value);
+	//}
+}
+void VMCore::setVar(Value reference, Value newValue) {
+	//when setting something it needs to be a ref not immidate
+	if (reference.immediate) {
+		DIE << "Cant assign value to immidate!";
+	}
+
+	//new value needs to have data or its kind of worthless
+	if (newValue.data == nullptr || newValue.length == 0) {
+		DIE << "Eror trying to assign to value, cant assign nothing to value (for now)";
+	}
+
+	//its a refernce so we can use the index
+	uint32_t index = reference.index;
+	instance.varibles[index] = newValue.data; 
+	instance.meta[index] = newValue.length;
+}
 
 void VMCore::Jump(uint32_t offset, bool immidiate)
 {
@@ -188,6 +226,14 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(SYSCALL);
 	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(EXIT);
 
+
+	opcode_lookup[iVAR].execute = MAKE_EXECUTE(VAR);
+	opcode_lookup[iPOP_TO_VAR].execute = MAKE_EXECUTE(POP_TO_VAR);
+	opcode_lookup[iVAR_MOV].execute = MAKE_EXECUTE(VAR_MOV);
+	//opcode_lookup[iVAR_PUSH].execute = MAKE_EXECUTE(VAR_PUSH);
+	//opcode_lookup[iVAR_POP].execute = MAKE_EXECUTE(VAR_POP);
+	//opcode_lookup[iSTRUCT_SET].execute = MAKE_EXECUTE(STRUCT_SET);
+	//opcode_lookup[iSTRUCT_GET].execute = MAKE_EXECUTE(STRUCT_GET);
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));
@@ -303,6 +349,41 @@ void VMCore::EXIT(uint32_t* params, bool immediate, uint8_t arg_size)
 	printf("\n\nExit was called with code: %u\n", exitCode);
 	exit(exitCode);
 }
+void VMCore::VAR(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	auto index = params[0];
+	if (index <= instance.declare_size)
+	{
+		DIE << "Cant create dynamic varible that overlaps with declares!";
+	}
+	instance.meta.push_back(0);
+	instance.varibles.push_back(nullptr);
+}
+void VMCore::POP_TO_VAR(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Value value = getVar();
+	if (value.immediate)
+	{
+		//pop first and use as length, then pop x amount next, that then is the value array
+		DIE << "pop to var expected an imidate value (for now)";
+	}
+	else
+	{
+		if (immediate) //if the instruction itself is imidate
+		{
+			DIE << "Cant assign to imidate value, pop_to_var expected a varible";
+		}
+		Value varible = makeValue(params[0], immediate, arg_size);
+		setVar(varible, value);
+	}
+}
+void VMCore::VAR_MOV(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Value varible1 = makeValue(params[0], immediate, arg_size);
+	Value varible2 = makeValue(params[1], immediate, arg_size);
+	setVar(varible1, varible2);
+}
+
 #pragma endregion
 
 #pragma region Syscalls
@@ -318,7 +399,9 @@ void VMCore::SYS_CLEAR()
 
 void VMCore::SYS_READ()
 {
-	DIE << "syscall SYS_READ not implemented!";
+	Value buffer = getVar(); //put address on stack that we can write to
+	Value val = read_raw();
+	setVar(buffer, val);
 }
 
 void VMCore::SYS_PRINT()
@@ -351,8 +434,43 @@ void VMCore::print_raw(Value val)
 	print_raw(val.data, val.length);
 }
 void VMCore::print_raw(uint8_t* data, uint32_t length) {
-	for (uint32_t i = 0; i < length; ++i) {
+	for (uint32_t i = 0; i < length; ++i)
 		putchar(data[i]);  // Print each byte as a character
-	}
 }
-#pragma endregion
+Value VMCore::read_raw() {
+	std::vector<uint8_t> buffer;
+	int value = getchar();
+
+	while(value >= ' ' && value <= '~')
+	{
+		buffer.push_back(static_cast<uint8_t>(value));
+		value = getchar();
+	}
+
+	//while (stdin >> value) {
+	//	if (value < 0 || value > 255) break;  // Exit on out-of-range values
+	//	data.push_back(static_cast<uint8_t>(value));
+	//}
+
+	uint32_t length = buffer.size();
+	uint8_t* data = new uint8_t[length];
+	std::copy(buffer.begin(), buffer.end(), data);
+	// Now `array` points to the raw data, and `length` contains the number of elements
+	return Value(data, length, true);
+}
+//Value VMCore::read_raw() {
+//	std::vector<uint8_t> buffer;
+//
+//	 read bytes until enter is pressed
+//	while (true) {
+//		uint8_t byte = getchar();
+//		if (byte == '\n' || byte == EOF)
+//			break;
+//		buffer.push_back(byte);
+//	}
+//
+//	uint8_t* data = buffer.data();
+//	uint32_t length = buffer.size();
+//	return Value(data, length, true); //return imidate value
+//}
+//#pragma endregion

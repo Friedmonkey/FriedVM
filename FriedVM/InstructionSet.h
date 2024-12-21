@@ -24,13 +24,6 @@ public:
 	//void (*execute)(uint8_t params[]);
 };
 
-//struct OpcodeArguments
-//{
-//	uint32_t *params;
-//	bool immediate;
-//	uint8_t arg_size;
-//};
-
 struct Value
 {
 public:
@@ -47,26 +40,27 @@ public:
 #define iPUSH		0x00
 #define iPOP		0x01
 #define iDUP		0x02
-#define iVAR		0x03
-#define iGET_VAR	0x04
-#define iPOP_VAR	0x05
-#define iPSH_VAR	0x06
-#define iMOV_VAR	0x07
-#define iDEL		0x08
-#define iMATH		0x09
-#define iAND		0x0B
-#define iOR			0x0C
-#define iNOT		0x0D
-#define iCOMP		0x0A
+#define iMATH		0x03
+#define iAND		0x04
+#define iOR			0x05
+#define iNOT		0x06
+#define iCOMP		0x07
 
-#define iJUMP		0x0E
-#define iJUMP_IF	0x0F
-#define iCALL		0x10
-#define iCALL_IF	0x11
-#define iRET		0x12
-#define iSYSCALL	0x13
-#define iEXIT		0x14
-//#define i			0x15
+#define iJUMP		0x08
+#define iJUMP_IF	0x09
+#define iCALL		0x0A
+#define iCALL_IF	0x0B
+#define iRET		0x0C
+#define iSYSCALL	0x0D
+#define iEXIT		0x0E
+
+#define iVAR		0x0F
+#define iPOP_TO_VAR	0x10
+#define iVAR_MOV	0x11
+#define iVAR_PUSH	0x12
+#define iVAR_POP	0x13 
+#define iSTRUCT_SET	0x14
+#define iSTRUCT_GET	0x15
 //#define i			0x16
 //#define i			0x17
 //#define i			0x18
@@ -74,10 +68,10 @@ public:
 //#define i			0x1A
 //#define i			0x1B
 //#define i			0x1C
-//
 //#define i			0x1D
 //#define i			0x1E
 //#define i			0x1F
+
 
 //math Modes
 #define mmADD 0x00

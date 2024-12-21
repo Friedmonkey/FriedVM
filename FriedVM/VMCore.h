@@ -17,20 +17,14 @@ private:
 	uint32_t pop();
 	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 1);
 	void syscall(uint32_t index);
+	Value makeValue(uint32_t value, bool immediate, uint8_t arg_size);
 	Value getVar();
+	void setVar(Value reference, Value newValue);
 	void Jump(uint32_t offset, bool immidiate);
 #pragma region Instructions
 	void PUSH(uint32_t* params, bool immediate, uint8_t arg_size);
 	void POP(uint32_t* params, bool immediate, uint8_t arg_size);
 	void DUP(uint32_t* params, bool immediate, uint8_t arg_size);
-
-	//void VAR(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void GET_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void POP_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void PSH_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void MOV_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void DEL(uint32_t* params, bool immediate, uint8_t arg_size);
-
 
 	void MATH(uint32_t* params, bool immediate, uint8_t arg_size);
 
@@ -51,6 +45,24 @@ private:
 	void SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size);
 	
 	void EXIT(uint32_t* params, bool immediate, uint8_t arg_size);
+
+	void VAR(uint32_t* params, bool immediate, uint8_t arg_size);
+	void POP_TO_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
+	void VAR_MOV(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void VAR_PUSH(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void VAR_POP(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void STRUCT_SET(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void STRUCT_GET(uint32_t* params, bool immediate, uint8_t arg_size);
+	
+	//void VAR(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void GET_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void POP_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void PSH_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void MOV_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void DEL(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void DEL(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void DEL(uint32_t* params, bool immediate, uint8_t arg_size);
+	//void DEL(uint32_t* params, bool immediate, uint8_t arg_size);
 #pragma endregion
 
 #pragma region Syscalls
@@ -63,6 +75,7 @@ private:
 #pragma region Syscall_helpers
 	void print_raw(Value val);
 	void print_raw(uint8_t* data, uint32_t length);
+	Value read_raw();
 #pragma endregion
 
 
