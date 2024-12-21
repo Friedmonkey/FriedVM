@@ -18,9 +18,12 @@ private:
 	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 1);
 	void syscall(uint32_t index);
 	Value makeValue(uint32_t value, bool immediate, uint8_t arg_size);
+	void checkVaribleIndex(uint32_t index);
 	Value getVar();
 	void setVar(Value reference, Value newValue);
 	void Jump(uint32_t offset, bool immidiate);
+	void Call(uint32_t offset, bool immidiate);
+	void Return();
 #pragma region Instructions
 	void PUSH(uint32_t* params, bool immediate, uint8_t arg_size);
 	void POP(uint32_t* params, bool immediate, uint8_t arg_size);
@@ -37,10 +40,10 @@ private:
 	void JUMP(uint32_t* params, bool immediate, uint8_t arg_size);
 	void JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size);
 
-	//void CALL(uint32_t* params, bool immediate, uint8_t arg_size);
+	void CALL(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void CALL_IF(uint32_t* params, bool immediate, uint8_t arg_size);
 
-	//void RET(uint32_t* params, bool immediate, uint8_t arg_size);
+	void RET(uint32_t* params, bool immediate, uint8_t arg_size);
 	//
 	void SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size);
 	
@@ -49,7 +52,7 @@ private:
 	void VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	void POP_TO_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	void VAR_MOV(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void VAR_PUSH(uint32_t* params, bool immediate, uint8_t arg_size);
+	void VAR_PUSH(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void VAR_POP(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void STRUCT_SET(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void STRUCT_GET(uint32_t* params, bool immediate, uint8_t arg_size);

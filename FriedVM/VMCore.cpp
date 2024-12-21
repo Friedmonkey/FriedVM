@@ -148,10 +148,16 @@ Value VMCore::makeValue(uint32_t value, bool immediate, uint8_t arg_size)
 	}
 	else
 	{
+		checkVaribleIndex(value);
 		uint32_t& length = instance.meta.at(value);
 		uint8_t* data = instance.varibles.at(value);
 		return Value(data, length, false, value);
 	}
+}
+void VMCore::checkVaribleIndex(uint32_t index)
+{
+	if (instance.meta.size() <= index)
+		DIE << "Varible with index " << HEX(index) << " does not exist!";
 }
 Value VMCore::getVar()
 {
@@ -202,6 +208,19 @@ void VMCore::Jump(uint32_t offset, bool immidiate)
 	//else
 		instance.pc = instance.instructionStart + offset;
 }
+void VMCore::Call(uint32_t offset, bool immidiate)
+{
+	instance.call_stack.push_back(instance.pc); //keep track of where we are now
+	instance.pc = instance.instructionStart + offset;
+}
+void VMCore::Return()
+{
+	if (instance.call_stack.size() == 0)
+		DIE << "Call stack was empty when trying to return At program index " << HEX(instance.pc);
+
+	instance.pc = instance.call_stack.at(instance.call_stack.size()-1);
+	instance.call_stack.pop_back();
+}
 #define MAKE_EXECUTE(method) [this](uint32_t* params, bool immediate, uint8_t arg_size) { this->method(params, immediate, arg_size); }
 #define MAKE_SYS_EXECUTE(method) [this]() { this->method(); }
 
@@ -223,6 +242,10 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(JUMP);
 	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(JUMP_IF);
 
+	opcode_lookup[iCALL].execute = MAKE_EXECUTE(CALL);
+	//opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(CALL_IF);
+	opcode_lookup[iRET].execute = MAKE_EXECUTE(RET);
+
 	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(SYSCALL);
 	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(EXIT);
 
@@ -230,7 +253,7 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iVAR].execute = MAKE_EXECUTE(VAR);
 	opcode_lookup[iPOP_TO_VAR].execute = MAKE_EXECUTE(POP_TO_VAR);
 	opcode_lookup[iVAR_MOV].execute = MAKE_EXECUTE(VAR_MOV);
-	//opcode_lookup[iVAR_PUSH].execute = MAKE_EXECUTE(VAR_PUSH);
+	opcode_lookup[iVAR_PUSH].execute = MAKE_EXECUTE(VAR_PUSH);
 	//opcode_lookup[iVAR_POP].execute = MAKE_EXECUTE(VAR_POP);
 	//opcode_lookup[iSTRUCT_SET].execute = MAKE_EXECUTE(STRUCT_SET);
 	//opcode_lookup[iSTRUCT_GET].execute = MAKE_EXECUTE(STRUCT_GET);
@@ -339,6 +362,14 @@ void VMCore::JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size)
 			Jump(params[1], immediate);
 	}
 }
+void VMCore::CALL(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Call(params[0], immediate);
+}
+void VMCore::RET(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Return();
+}
 void VMCore::SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	syscall(params[0]);
@@ -382,6 +413,29 @@ void VMCore::VAR_MOV(uint32_t* params, bool immediate, uint8_t arg_size)
 	Value varible1 = makeValue(params[0], immediate, arg_size);
 	Value varible2 = makeValue(params[1], immediate, arg_size);
 	setVar(varible1, varible2);
+}
+
+void VMCore::VAR_PUSH(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Value var = makeValue(params[0], true, arg_size); //we know ur supposed to use a ref, and imidate is based on last argument
+	Value value = makeValue(params[1], immediate, arg_size);
+
+	uint32_t total_length = var.length + value.length;
+	uint8_t* buffer = new uint8_t[total_length];
+
+	//initial data
+	for (size_t i = 0; i < var.length; i++) 
+		buffer[i] = var.data[i];
+	
+	//new data
+	for (size_t i = var.length; i < total_length; i++)
+		buffer[i] = value.data[i - var.length];
+
+	uint32_t index = var.index;
+	delete[] instance.varibles[index]; //we dont need the old one
+
+	instance.varibles[index] = buffer;
+	instance.meta[index] = total_length;
 }
 
 #pragma endregion

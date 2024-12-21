@@ -10,6 +10,8 @@ public:
 	uint64_t pc = 0;
 	std::vector<uint8_t> bytecode;
 
+	std::vector<uint64_t> call_stack;
+
 	uint8_t sp = 0;
 	std::vector<uint32_t> stack;
 	std::vector<uint8_t> stack_type;
