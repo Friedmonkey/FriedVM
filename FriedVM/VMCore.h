@@ -16,6 +16,8 @@ private:
 	//FStack stackApi;
 	uint32_t pop();
 	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 1);
+	uint32_t buffer_pop();
+	void buffer_push(Value value);
 	void syscall(uint32_t index);
 	Value makeValue(uint32_t value, bool immediate, uint8_t arg_size);
 	void checkVaribleIndex(uint32_t index);
@@ -49,11 +51,11 @@ private:
 	
 	void EXIT(uint32_t* params, bool immediate, uint8_t arg_size);
 
-	void VAR(uint32_t* params, bool immediate, uint8_t arg_size);
-	void POP_TO_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
-	void VAR_MOV(uint32_t* params, bool immediate, uint8_t arg_size);
-	void VAR_PUSH(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void VAR_POP(uint32_t* params, bool immediate, uint8_t arg_size);
+	void SET_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size);
+	void GET_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size);
+	void PUSH_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size);
+	void BUFFER_UTIL(uint32_t* params, bool immediate, uint8_t arg_size);
+	void SET_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void STRUCT_SET(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void STRUCT_GET(uint32_t* params, bool immediate, uint8_t arg_size);
 	

@@ -54,13 +54,13 @@ public:
 #define iSYSCALL	0x0D
 #define iEXIT		0x0E
 
-#define iVAR		0x0F
-#define iPOP_TO_VAR	0x10
-#define iVAR_MOV	0x11
-#define iVAR_PUSH	0x12
-#define iVAR_POP	0x13 
-#define iSTRUCT_SET	0x14
-#define iSTRUCT_GET	0x15
+#define iSET_BUFFER		0x0F
+#define iGET_BUFFER		0x10
+#define iPUSH_BUFFER	0x11
+#define iBUFFER_UTIL	0x12
+#define iSET_VAR		0x13 //unused
+#define iSTRUCT_SET		0x14
+#define iSTRUCT_GET		0x15
 //#define i			0x16
 //#define i			0x17
 //#define i			0x18
@@ -91,6 +91,14 @@ public:
 #define cmLTE 0x03
 #define cmEQ 0x04
 #define cmNEQ 0x05
+
+//buffer Modes
+#define bmCLEAR				0x00
+#define bmPOP_TO_STACK		0x01
+#define bmPUSH_FROM_STACK	0x02
+#define bmREMOVE_FROM_END	0x03
+//#define bmPOP_AND_CLEAR		0x04
+//#define bm					0x05
 
 #define iTRUE		0x01
 #define iFALSE		0x00

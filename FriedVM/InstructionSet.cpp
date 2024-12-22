@@ -19,11 +19,11 @@ std::vector<INSTRUCTION> opcode_lookup =
 	{ iSYSCALL, "SYSCALL",	1 },
 	{ iEXIT, "EXIT",		0 },
 
-	{ iVAR, "VAR",				1 },
-	{ iPOP_TO_VAR, "POP_TO_VAR",1 },
-	{ iVAR_MOV, "VAR_MOV",		2 },
-	{ iVAR_PUSH, "VAR_PUSH",	2 },
-	{ iVAR_POP, "VAR_POP",		1 },
-	{ iSTRUCT_SET, "STRUCT_SET",2 },
-	{ iSTRUCT_GET, "STRUCT_GET",2 },
+	{ iSET_BUFFER, "SET_BUFFER",	1 },
+	{ iGET_BUFFER, "GET_BUFFER",	1 },
+	{ iPUSH_BUFFER, "PUSH_BUFFER",	1 },
+	{ iBUFFER_UTIL, "BUFFER_UTIL",	1 },
+	{ iSET_VAR, "SET_VAR",			0 },
+	{ iSTRUCT_SET, "STRUCT_SET",	2 },
+	{ iSTRUCT_GET, "STRUCT_GET",	2 },
 };

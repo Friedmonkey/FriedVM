@@ -18,14 +18,17 @@ void FBinary::ParseMagic()
 		if (i == magic_size-1) //the version
 		{
 			constexpr uint8_t size_map[4] = { 1, 2, 4, 8 };
-			uint8_t version_byte = instance.bytecode[instance.pc + i];
-			uint8_t header_size = size_map[(version_byte & 0b11000000) >> 6];
-			uint8_t meta_size = size_map[(version_byte & 0b00110000) >> 4];
-			hasSymbols = (version_byte & 0b00001000) >> 3;
-			uint8_t version = (version_byte & 0b00000111);
+			uint8_t info_byte = instance.bytecode[instance.pc + i];
+
+			uint8_t header_size = size_map[(info_byte & 0b11000000) >> 6];
+			uint8_t meta_size = size_map[(info_byte &   0b00110000) >> 4];
+			uint8_t emptyVar_size = size_map[(info_byte&0b00001100) >> 2];
+			hasSymbols = (info_byte & 0b00000010) >> 1;
+			uint8_t version = (info_byte & 0b00000001);
 
 			instance.header_size = header_size;
 			instance.meta_size = meta_size;
+			instance.emptyVar_size = emptyVar_size;
 			instance.hasSymbols = hasSymbols;
 			instance.version = version;
 		}
@@ -88,6 +91,10 @@ uint32_t* FBinary::GetParams(INSTRUCTION &instruction)
 	}
 
 	return params;
+}
+uint64_t FBinary::ParseEmptyVarCount()
+{
+	return CastToUint64(ReadBytes(instance.emptyVar_size), instance.emptyVar_size);
 }
 
 uint64_t FBinary::ParseMeta()

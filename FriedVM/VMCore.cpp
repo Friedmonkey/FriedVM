@@ -5,6 +5,7 @@
 void VMCore::Parse()
 {
 	binaryApi.ParseMagic();
+	uint64_t emptyVarCount = binaryApi.ParseEmptyVarCount();
 	instance.instructionStart= binaryApi.ParseAddress();
 	uint64_t constPoolStart = binaryApi.ParseAddress();
 	uint64_t symbolsStart = 0;
@@ -34,6 +35,11 @@ void VMCore::Parse()
 		instance.declare_size++;
 	}
 	instance.declare_size--; //size not count
+	for (uint64_t i = 0; i < emptyVarCount; i++) //allocate room for empty varibles
+	{
+		instance.meta.push_back(0);
+		instance.varibles.push_back(nullptr);
+	}
 	if (instance.hasSymbols && instance.pc == instance.instructionStart) //symbol section
 	{
 		totalLength = symbolsStart;
@@ -131,6 +137,23 @@ void VMCore::push(uint32_t value, bool immediate, uint8_t arg_size)
 	instance.sp++;
 	instance.stack.push_back(value);
 	instance.stack_type.push_back((immediate << 7) | (arg_size & 0b01111111));
+}
+uint32_t VMCore::buffer_pop()
+{
+	if (instance.varible_buffer.size() == 0)
+		DIE << "Nothing on the buffer to pop! At program index " << HEX(instance.pc);
+
+	uint32_t val = instance.varible_buffer.at(instance.varible_buffer.size());
+	instance.varible_buffer.pop_back();
+	return val;
+}
+void VMCore::buffer_push(Value value)
+{
+	instance.varible_buffer.reserve(instance.varible_buffer.size() + value.length); //reserve more space for the buffer to avoid resize
+	for (uint32_t i = 0; i < value.length; i++)
+	{
+		instance.varible_buffer.push_back(value.data[i]);
+	}
 }
 void VMCore::syscall(uint32_t index)
 {
@@ -250,11 +273,11 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(EXIT);
 
 
-	opcode_lookup[iVAR].execute = MAKE_EXECUTE(VAR);
-	opcode_lookup[iPOP_TO_VAR].execute = MAKE_EXECUTE(POP_TO_VAR);
-	opcode_lookup[iVAR_MOV].execute = MAKE_EXECUTE(VAR_MOV);
-	opcode_lookup[iVAR_PUSH].execute = MAKE_EXECUTE(VAR_PUSH);
-	//opcode_lookup[iVAR_POP].execute = MAKE_EXECUTE(VAR_POP);
+	opcode_lookup[iSET_BUFFER].execute = MAKE_EXECUTE(SET_BUFFER);
+	opcode_lookup[iGET_BUFFER].execute = MAKE_EXECUTE(GET_BUFFER);
+	opcode_lookup[iPUSH_BUFFER].execute = MAKE_EXECUTE(PUSH_BUFFER);
+	opcode_lookup[iBUFFER_UTIL].execute = MAKE_EXECUTE(BUFFER_UTIL);
+	opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(SET_VAR);
 	//opcode_lookup[iSTRUCT_SET].execute = MAKE_EXECUTE(STRUCT_SET);
 	//opcode_lookup[iSTRUCT_GET].execute = MAKE_EXECUTE(STRUCT_GET);
 #pragma endregion
@@ -380,62 +403,58 @@ void VMCore::EXIT(uint32_t* params, bool immediate, uint8_t arg_size)
 	printf("\n\nExit was called with code: %u\n", exitCode);
 	exit(exitCode);
 }
-void VMCore::VAR(uint32_t* params, bool immediate, uint8_t arg_size)
+void VMCore::SET_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto index = params[0];
-	if (index <= instance.declare_size)
-	{
-		DIE << "Cant create dynamic varible that overlaps with declares!";
-	}
-	instance.meta.push_back(0);
-	instance.varibles.push_back(nullptr);
+	Value value = makeValue(params[0], immediate, arg_size);
+	instance.varible_buffer = std::vector<uint8_t>(value.data, value.data + value.length);
 }
-void VMCore::POP_TO_VAR(uint32_t* params, bool immediate, uint8_t arg_size)
+void VMCore::GET_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size)
 {
+	if (immediate)
+		DIE << "Cant assign to immidate value!";
+
+	uint32_t length = instance.varible_buffer.size();
+	uint8_t* data = new uint8_t[length];
+	std::copy(instance.varible_buffer.begin(), instance.varible_buffer.end(), data);
+
+	uint32_t index = params[0];
+	instance.varibles[index] = data;
+	instance.meta[index] = length;
+}
+void VMCore::PUSH_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Value value = makeValue(params[0], immediate, arg_size);
+	buffer_push(value);
+}
+
+void VMCore::BUFFER_UTIL(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	auto buffer_mode = params[0];
+	switch (buffer_mode) {
+	case bmCLEAR: instance.varible_buffer.clear(); break;
+	case bmPOP_TO_STACK: push(buffer_pop()); break;
+	case bmPUSH_FROM_STACK: buffer_push(getVar()); break;
+	//case bmREMOVE_FROM_END: 
+	//{
+	//}
+	//case bmPOP_AND_CLEAR:
+	//{
+	//	instance.varible_buffer.clear();
+
+	//}
+	break;
+	default:
+		DIE << "Buffer mode with index " << HEX(buffer_mode) << " does not exist!";
+	}
+}
+
+void VMCore::SET_VAR(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Value varible = getVar();
+	if (varible.immediate)
+		DIE << "Cant assign to immidate value!";
 	Value value = getVar();
-	if (value.immediate)
-	{
-		//pop first and use as length, then pop x amount next, that then is the value array
-		DIE << "pop to var expected an imidate value (for now)";
-	}
-	else
-	{
-		if (immediate) //if the instruction itself is imidate
-		{
-			DIE << "Cant assign to imidate value, pop_to_var expected a varible";
-		}
-		Value varible = makeValue(params[0], immediate, arg_size);
-		setVar(varible, value);
-	}
-}
-void VMCore::VAR_MOV(uint32_t* params, bool immediate, uint8_t arg_size)
-{
-	Value varible1 = makeValue(params[0], immediate, arg_size);
-	Value varible2 = makeValue(params[1], immediate, arg_size);
-	setVar(varible1, varible2);
-}
-
-void VMCore::VAR_PUSH(uint32_t* params, bool immediate, uint8_t arg_size)
-{
-	Value var = makeValue(params[0], true, arg_size); //we know ur supposed to use a ref, and imidate is based on last argument
-	Value value = makeValue(params[1], immediate, arg_size);
-
-	uint32_t total_length = var.length + value.length;
-	uint8_t* buffer = new uint8_t[total_length];
-
-	//initial data
-	for (size_t i = 0; i < var.length; i++) 
-		buffer[i] = var.data[i];
-	
-	//new data
-	for (size_t i = var.length; i < total_length; i++)
-		buffer[i] = value.data[i - var.length];
-
-	uint32_t index = var.index;
-	delete[] instance.varibles[index]; //we dont need the old one
-
-	instance.varibles[index] = buffer;
-	instance.meta[index] = total_length;
+	setVar(varible, value);
 }
 
 #pragma endregion
