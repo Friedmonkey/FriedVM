@@ -72,7 +72,7 @@ private:
 
 #pragma region Syscalls
 	void SYS_PAUSE();
-	void SYS_CLEAR();
+	void SYS_CLEAR_CONSOLE();
 	void SYS_READ();
 	void SYS_PRINT();
 	void SYS_DUMP();

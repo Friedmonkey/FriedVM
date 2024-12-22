@@ -214,7 +214,7 @@ void VMCore::setVar(Value reference, Value newValue) {
 	}
 
 	//new value needs to have data or its kind of worthless
-	if (newValue.data == nullptr || newValue.length == 0) {
+	if (newValue.data == nullptr) {
 		DIE << "Eror trying to assign to value, cant assign nothing to value (for now)";
 	}
 
@@ -283,7 +283,7 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));
-	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_CLEAR));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_CLEAR_CONSOLE));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_READ));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PRINT));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_DUMP));
@@ -301,12 +301,20 @@ void VMCore::POP(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	if (instance.sp == 0)
+	uint32_t index = instance.sp - (params[0]+1);
+
+	if (index < 0 || params[0] + 1 > instance.sp)
 	{
-		DIE << "Nothing on the stack to duplicate! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << HEX(instance.pc);
 	}
-	auto val1 = instance.stack.at(instance.sp-1);
-	push(val1);
+
+	uint8_t type = instance.stack_type.at(index);
+	bool prevImmediate = (type & 0b10000000) >> 7;
+	uint8_t prevArg_size = type & 0b01111111;
+
+	uint32_t value = instance.stack.at(index);
+
+	push(value, prevImmediate, prevArg_size);
 }
 void VMCore::MATH(uint32_t* params, bool immediate, uint8_t arg_size)
 {
@@ -465,7 +473,7 @@ void VMCore::SYS_PAUSE()
 	uint32_t pause_ms = pop();
 	std::this_thread::sleep_for(std::chrono::milliseconds(pause_ms));
 }
-void VMCore::SYS_CLEAR()
+void VMCore::SYS_CLEAR_CONSOLE()
 {
 	DIE << "syscall SYS_CLEAR not implemented!";
 }

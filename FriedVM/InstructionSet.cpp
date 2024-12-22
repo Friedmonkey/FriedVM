@@ -5,7 +5,7 @@ std::vector<INSTRUCTION> opcode_lookup =
 {
 	{ iPUSH, "PUSH",		1 },
 	{ iPOP, "POP",			0 },
-	{ iDUP, "DUP",			0 },
+	{ iDUP, "DUP",			1 },
 	{ iMATH, "MATH",		1 },
 	{ iAND, "AND",			0 },
 	{ iOR, "OR",			0 },
