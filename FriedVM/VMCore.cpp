@@ -278,8 +278,8 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iPUSH_BUFFER].execute = MAKE_EXECUTE(PUSH_BUFFER);
 	opcode_lookup[iBUFFER_UTIL].execute = MAKE_EXECUTE(BUFFER_UTIL);
 	opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(SET_VAR);
-	//opcode_lookup[iSTRUCT_SET].execute = MAKE_EXECUTE(STRUCT_SET);
-	//opcode_lookup[iSTRUCT_GET].execute = MAKE_EXECUTE(STRUCT_GET);
+	opcode_lookup[iSET_STRUCT].execute = MAKE_EXECUTE(SET_STRUCT);
+	opcode_lookup[iGET_STRUCT].execute = MAKE_EXECUTE(GET_STRUCT);
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));
@@ -464,6 +464,160 @@ void VMCore::SET_VAR(uint32_t* params, bool immediate, uint8_t arg_size)
 	Value value = getVar();
 	setVar(varible, value);
 }
+void VMCore::SET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Value struc = makeValue(params[0], false, arg_size);
+	if (struc.length < 2)
+		DIE << "Invalid struct passed";
+	if (struc.data[0] != 0xFF) //simple struct indicator
+		DIE << "Invalid struct passed";
+
+	uint8_t amount_of_fields = struc.data[1];
+	for (uint8_t i = 0; i < amount_of_fields; i++)
+	{
+
+	}
+	//struc.data
+}
+
+void VMCore::GET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Value struct_instance = makeValue(params[0], false, arg_size);
+	uint32_t field_index = params[1];
+
+	if (struct_instance.length < structIndexByteCount)
+		DIE << "Invalid struct passed";
+
+	uint32_t index = binaryApi.CastToUint32(struct_instance.data, structIndexByteCount);
+	if (instance.structCache.find(index) != instance.structCache.end()) 
+	{
+		if (struct_instance.length < instance.structCache[index].total_size)
+			DIE << "Struct instance was too small";
+
+		std::vector<uint32_t> offsets = instance.structCache[index].offsets;
+		std::vector<uint8_t> lengths = instance.structCache[index].lengths;
+
+		if (offsets.size() < field_index)
+			DIE << "Field index out of bounds";
+
+		uint32_t value = binaryApi.CastToUint32(&struct_instance.data[offsets[field_index]], lengths[field_index]);
+		push(value);
+	}
+	else 
+	{
+		Value struct_definition = makeValue(index, false, 0); //use the first few byte/index to get the declare/definition
+		const uint8_t struct_offset = 2;
+
+		if (struct_definition.length < struct_offset)
+			DIE << "Invalid struct passed";
+		if (struct_definition.data[0] != 0xFF) //simple struct indicator
+			DIE << "Invalid struct passed";
+
+		uint8_t amount_of_fields = struct_definition.data[1];
+
+		if (field_index > amount_of_fields)
+			DIE << "Invalid struct passed";
+
+		if (struct_instance.length < (amount_of_fields + struct_offset))
+			DIE << "Invalid struct passed";
+
+		std::vector<uint8_t> initial_data;
+		initial_data.reserve(structIndexByteCount+amount_of_fields); //assumes all fields are 1 byte for the least
+		uint8_t *index_bytes = binaryApi.CastFromUint32(index, structIndexByteCount);
+		for (uint8_t i = 0; i < structIndexByteCount; i++)
+		{
+			initial_data.push_back(index_bytes[i]);
+		}
+
+		StructCache cache;
+
+		size_t sum = 0;
+		for (uint8_t i = 0; i < amount_of_fields; i++)
+		{
+			auto length = struct_definition.data[struct_offset + i];
+			cache.lengths.push_back(length);
+			sum += length;
+		}
+
+		if (struct_instance.length < sum)
+			DIE << "Invalid struct passed";
+
+		uint32_t value = 0;
+		auto new_offset = struct_offset + amount_of_fields;
+		for (size_t i = 0; i < amount_of_fields;)
+		{
+			cache.offsets.push_back(new_offset + i);
+			auto length = cache.lengths[i];
+			if (i == field_index)
+			{
+				value = binaryApi.CastToUint32(&struct_instance.data[new_offset + i], length);
+			}
+			for (uint8_t j = 0; j < length; j++)
+			{
+				initial_data.push_back(struct_definition.data[new_offset + i+j]);
+			}
+			i += length;
+		}
+
+		cache.total_size = initial_data.size();
+		cache.initial_data = new uint8_t[cache.total_size];
+		std::copy(initial_data.begin(), initial_data.end(), cache.initial_data);
+
+		instance.structCache[index] = cache;
+
+		push(value);
+	}
+
+	//// Access Field
+	//if (field_index >= fieldCount)
+	//	DIE << "Field index out of bounds";
+
+	//size_t fieldOffset = offsets[field_index];
+	//uint8_t fieldLength = struc.data[2 + field_index];
+
+	//if (fieldOffset + fieldLength > struc.length)
+	//	DIE << "Field out of bounds";
+
+	//uint32_t value = binaryApi.CastToUint32(&struc.data[fieldOffset], fieldLength);
+	//push(value);
+}
+//void VMCore::GET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size)
+//{
+//	Value struc = makeValue(params[0], false, arg_size);
+//	uint32_t index = params[1];
+//	if (struc.length < 2)
+//		DIE << "Invalid struct passed";
+//	if (struc.data[0] != 0xFF) //simple struct indicator
+//		DIE << "Invalid struct passed";
+//
+//	const uint8_t offset = 2;
+//	uint8_t amount_of_fields = struc.data[1];
+//
+//	if (index > amount_of_fields)
+//		DIE << "Invalid struct passed";
+//
+//	if (struc.length < (amount_of_fields+offset))
+//		DIE << "Invalid struct passed";
+//
+//	size_t sum = 0;
+//	for (uint8_t i = 0; i < index; i++)
+//	{
+//		sum += struc.data[offset+i];
+//	}
+//
+//	if (struc.length < sum)
+//		DIE << "Invalid struct passed";
+//
+//	uint8_t length = struc.data[offset + index];
+//
+//	uint8_t *data = new uint8_t[length];
+//	for (size_t i = 0; i < length; i++)
+//	{
+//
+//	}
+//
+//	struc.data
+//}
 
 #pragma endregion
 

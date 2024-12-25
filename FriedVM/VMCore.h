@@ -56,8 +56,8 @@ private:
 	void PUSH_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size);
 	void BUFFER_UTIL(uint32_t* params, bool immediate, uint8_t arg_size);
 	void SET_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void STRUCT_SET(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void STRUCT_GET(uint32_t* params, bool immediate, uint8_t arg_size);
+	void SET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size);
+	void GET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size);
 	
 	//void VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void GET_VAR(uint32_t* params, bool immediate, uint8_t arg_size);

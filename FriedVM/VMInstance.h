@@ -3,7 +3,14 @@
 #include <vector>
 #include <cstdint>
 #include "Logger.h"
+#include <unordered_map>
 
+struct StructCache {
+	std::vector<uint32_t> offsets;
+	std::vector<uint8_t> lengths;
+	uint32_t total_size = 0;
+	uint8_t *initial_data = 0;
+};
 struct VMInstance
 {
 public:
@@ -21,6 +28,8 @@ public:
 	uint32_t declare_size = 0;
 
 	std::vector<uint8_t> varible_buffer;
+
+	std::unordered_map<uint32_t, StructCache> structCache;
 
 	uint64_t instructionStart = 0;
 	uint8_t header_size = 8;

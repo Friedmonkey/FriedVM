@@ -24,6 +24,6 @@ std::vector<INSTRUCTION> opcode_lookup =
 	{ iPUSH_BUFFER, "PUSH_BUFFER",	1 },
 	{ iBUFFER_UTIL, "BUFFER_UTIL",	1 },
 	{ iSET_VAR, "SET_VAR",			0 },
-	{ iSTRUCT_SET, "STRUCT_SET",	2 },
-	{ iSTRUCT_GET, "STRUCT_GET",	2 },
+	{ iSET_STRUCT, "SET_STRUCT",	2 },
+	{ iGET_STRUCT, "GET_STRUCT",	2 },
 };

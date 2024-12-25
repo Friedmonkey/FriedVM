@@ -58,9 +58,9 @@ public:
 #define iGET_BUFFER		0x10
 #define iPUSH_BUFFER	0x11
 #define iBUFFER_UTIL	0x12
-#define iSET_VAR		0x13 //unused
-#define iSTRUCT_SET		0x14
-#define iSTRUCT_GET		0x15
+#define iSET_VAR		0x13
+#define iSET_STRUCT		0x14
+#define iGET_STRUCT		0x15
 //#define i			0x16
 //#define i			0x17
 //#define i			0x18
@@ -103,6 +103,7 @@ public:
 #define iTRUE		0x01
 #define iFALSE		0x00
 
+const uint8_t structIndexByteCount = 4;
 const uint8_t maxParamCount = 2;
 //magic = FXE
 const uint8_t file_magic[] = { 0x46, 0x58, 0x45 };
