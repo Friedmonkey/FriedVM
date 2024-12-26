@@ -97,7 +97,7 @@ public:
 #define bmPOP_TO_STACK		0x01
 #define bmPUSH_FROM_STACK	0x02
 #define bmREMOVE_FROM_END	0x03
-//#define bmPOP_AND_CLEAR		0x04
+#define bmFORMAT			0x04
 //#define bm					0x05
 
 #define iTRUE		0x01

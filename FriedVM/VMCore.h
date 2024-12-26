@@ -10,7 +10,8 @@ public:
 	VMCore(VMInstance& newInstance);
 	void Parse();
 	void Run(uint64_t start, uint64_t end);
-	bool Peek_stack(uint32_t &rValue, int offset = 0);
+	bool Peek_stack(uint32_t *pValue, int offset = 0);
+	bool StackEquals(Value& param_value);
 private:
 	FBinary binaryApi;
 	//FStack stackApi;
@@ -24,6 +25,7 @@ private:
 	void checkVaribleIndex(uint32_t index);
 	void GetStructFieldDetails(Value &struct_instance, uint32_t field_index, uint32_t *field_offset, uint8_t *field_length);
 	StructCache CacheStructDefinition(uint32_t index);
+	bool getStackType(bool* immediate, uint8_t* arg_size);
 	Value getVar();
 	void setVar(Value reference, Value newValue);
 	void Jump(uint32_t offset, bool immidiate);

@@ -108,7 +108,7 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		instruction.execute(params, instruction.immediate, instruction.arg_size);
 	}
 }
-bool VMCore::Peek_stack(uint32_t &rValue, int offset)
+bool VMCore::Peek_stack(uint32_t *pValue, int offset)
 {
 	if (instance.sp == 0)
 	{
@@ -116,9 +116,33 @@ bool VMCore::Peek_stack(uint32_t &rValue, int offset)
 	}
 	else
 	{
-		rValue = instance.stack.at(instance.sp-1);
+		*pValue = instance.stack.at(instance.sp-1);
 		return true;
 	}
+}
+bool VMCore::StackEquals(Value &param_value)
+{
+	bool success = false;
+	uint32_t stck_value = 0;
+
+	bool stck_immediate = false;
+	uint8_t stck_arg_size = 0;
+	success |= Peek_stack(&stck_value);
+	success |= getStackType(&stck_immediate, &stck_arg_size);
+	if (success)
+	{
+		Value stack_value = makeValue(stck_value, stck_immediate, stck_arg_size);
+		if (stack_value.length != param_value.length)
+			return false;
+
+		for (uint32_t i = 0; i < stack_value.length; i++)
+		{
+			if (stack_value.data[i] != param_value.data[i])
+				return false;
+		}
+		return true;
+	}
+	return false;
 }
 void VMCore::freeVarible(uint32_t index)
 {
@@ -153,7 +177,7 @@ uint32_t VMCore::buffer_pop()
 	if (instance.varible_buffer.size() == 0)
 		DIE << "Nothing on the buffer to pop! At program index " << HEX(instance.pc);
 
-	uint32_t val = instance.varible_buffer.at(instance.varible_buffer.size());
+	uint32_t val = instance.varible_buffer.at(instance.varible_buffer.size()-1);
 	instance.varible_buffer.pop_back();
 	return val;
 }
@@ -254,15 +278,29 @@ StructCache VMCore::CacheStructDefinition(uint32_t index)
 	instance.structCache[index] = cache;
 	return cache;
 }
-Value VMCore::getVar()
+bool VMCore::getStackType(bool *immediate, uint8_t *arg_size)
 {
 	if (instance.sp == 0)
 	{
+		return false;
+	}
+	else
+	{
+		uint8_t type = instance.stack_type.at(instance.sp - 1);
+		bool immediate = (type & 0b10000000) >> 7;
+		uint8_t arg_size = type & 0b01111111;
+		return true;
+	}
+}
+Value VMCore::getVar()
+{
+	bool immediate = false;
+	uint8_t arg_size = 0;
+	bool success = getStackType(&immediate, &arg_size);
+	if (!success)
+	{
 		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
 	}
-	uint8_t type = instance.stack_type.at(instance.sp-1);
-	bool immediate = (type & 0b10000000) >> 7;
-	uint8_t arg_size = type & 0b01111111;
 
 	uint32_t value = pop();
 	return makeValue(value, immediate, arg_size);
@@ -459,11 +497,10 @@ void VMCore::JUMP(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	uint32_t value = 0;
-	if (Peek_stack(value))
+	Value param_value = makeValue(params[0], immediate, arg_size);
+	if (StackEquals(param_value))
 	{
-		if (value == params[0])
-			Jump(params[1], immediate);
+		Jump(params[1], immediate);
 	}
 }
 void VMCore::CALL(uint32_t* params, bool immediate, uint8_t arg_size)
@@ -481,7 +518,7 @@ void VMCore::SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size)
 void VMCore::EXIT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	uint32_t exitCode = pop();
-	printf("\n\nExit was called with code: %u\n", exitCode);
+	printf("\n\nExit was called with code: %d\n", exitCode);
 	exit(exitCode);
 }
 void VMCore::SET_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size)
@@ -518,12 +555,69 @@ void VMCore::BUFFER_UTIL(uint32_t* params, bool immediate, uint8_t arg_size)
 	//case bmREMOVE_FROM_END: 
 	//{
 	//}
-	//case bmPOP_AND_CLEAR:
-	//{
-	//	instance.varible_buffer.clear();
+	case bmFORMAT:
+	{
+		std::vector<uint8_t> &buffer = instance.varible_buffer;
 
-	//}
-	break;
+		std::vector<uint8_t> formatted_buffer;
+		formatted_buffer.reserve(buffer.size()); //atleast this small
+
+		size_t index = 0;
+		while(index < buffer.size())
+		{
+			size_t specifier_index = index;
+			//skip normal text
+			while(specifier_index < buffer.size() && instance.varible_buffer[index] != '%')
+				specifier_index++;
+			
+			if (specifier_index > index) //whats the point of copying noting
+				std::copy(buffer.begin()+index, buffer.begin()+specifier_index, std::back_inserter(formatted_buffer));
+
+			if (specifier_index >= buffer.size())
+				break; //no more format specifiers left, we're done
+
+			if (specifier_index+1 >= buffer.size())
+				DIE << "Incorrect format, '%' at the end!";
+
+			//we found % + a char for format, get value from stack and format it
+			char specifier = buffer[specifier_index+1];
+			Value stack_val = getVar();
+
+			std::string formatted;
+			switch (specifier)
+			{
+				case 'u': //unsigned int
+				{
+					uint32_t val = *reinterpret_cast<uint32_t*>(stack_val.data);
+					formatted = std::to_string(val);
+					break;
+				}
+				case 'd': //signed int
+				{
+					int32_t val = *reinterpret_cast<int32_t*>(stack_val.data);
+					formatted = std::to_string(val);
+					break;
+				}
+				case 's': //string
+				{
+					formatted.assign(stack_val.data, stack_val.data + stack_val.length);
+					break;
+				}
+				default:
+					DIE << "Unknown format specifier: %" << specifier;
+					break;
+			}
+
+			//append the formatted string
+			std::copy(formatted.begin(), formatted.end(), std::back_inserter(formatted_buffer));
+
+			//skip over % and format specifier like "%s"
+			index = specifier_index + 2;
+		}
+
+		instance.varible_buffer = std::move(formatted_buffer);
+		break;
+	}
 	default:
 		DIE << "Buffer mode with index " << HEX(buffer_mode) << " does not exist!";
 	}
