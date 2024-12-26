@@ -26,4 +26,5 @@ std::vector<INSTRUCTION> opcode_lookup =
 	{ iSET_VAR, "SET_VAR",			0 },
 	{ iSET_STRUCT, "SET_STRUCT",	2 },
 	{ iGET_STRUCT, "GET_STRUCT",	2 },
+	{ iGET_STRUCT, "CREATE_STRUCT",	2 },
 };

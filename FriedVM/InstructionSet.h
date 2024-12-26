@@ -61,7 +61,7 @@ public:
 #define iSET_VAR		0x13
 #define iSET_STRUCT		0x14
 #define iGET_STRUCT		0x15
-//#define i			0x16
+#define iCREATE_STRUCT  0x16
 //#define i			0x17
 //#define i			0x18
 //#define i			0x19

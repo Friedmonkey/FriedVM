@@ -14,6 +14,7 @@ public:
 private:
 	FBinary binaryApi;
 	//FStack stackApi;
+	void freeVarible(uint32_t index);
 	uint32_t pop();
 	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 1);
 	uint32_t buffer_pop();
@@ -21,6 +22,8 @@ private:
 	void syscall(uint32_t index);
 	Value makeValue(uint32_t value, bool immediate, uint8_t arg_size);
 	void checkVaribleIndex(uint32_t index);
+	void GetStructFieldDetails(Value &struct_instance, uint32_t field_index, uint32_t *field_offset, uint8_t *field_length);
+	StructCache CacheStructDefinition(uint32_t index);
 	Value getVar();
 	void setVar(Value reference, Value newValue);
 	void Jump(uint32_t offset, bool immidiate);
@@ -58,6 +61,7 @@ private:
 	void SET_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	void SET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size);
 	void GET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size);
+	void CREATE_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size);
 	
 	//void VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void GET_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
