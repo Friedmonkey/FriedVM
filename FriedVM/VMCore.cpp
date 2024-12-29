@@ -330,6 +330,7 @@ void VMCore::setVar(Value reference, Value newValue) {
 
 	//its a refernce so we can use the index
 	uint32_t index = reference.index;
+	freeVarible(index);
 	instance.varibles[index] = newValue.data; 
 	instance.meta[index] = newValue.length;
 }
@@ -398,6 +399,11 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_READ));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PRINT));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_DUMP));
+
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_UNSIGNED));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_SIGNED));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_UNSIGNED));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_SIGNED));
 #pragma endregion
 }
 
@@ -567,8 +573,9 @@ void VMCore::BUFFER_UTIL(uint32_t* params, bool immediate, uint8_t arg_size)
 		{
 			size_t specifier_index = index;
 			//skip normal text
-			while(specifier_index < buffer.size() && instance.varible_buffer[index] != '%')
+			while(specifier_index < buffer.size() && instance.varible_buffer[specifier_index] != '%')
 				specifier_index++;
+
 			
 			if (specifier_index > index) //whats the point of copying noting
 				std::copy(buffer.begin()+index, buffer.begin()+specifier_index, std::back_inserter(formatted_buffer));
@@ -762,6 +769,103 @@ void VMCore::SYS_DUMP()
 	print_raw(data);
 	printf("\".");
 }
+void VMCore::SYS_TO_STRING_UNSIGNED()
+{
+	// Pop the buffer (where result will be stored)
+	Value result_var = getVar();
+	// Pop the number to convert
+	Value number = getVar();
+
+	// Ensure number length is <= 4
+	if (number.length > 4)
+		DIE << "Number too bige!!1!";
+
+	// Convert the number to string
+	uint32_t num = *reinterpret_cast<uint32_t*>(number.data);
+	std::string result_str = std::to_string(num);
+
+	// Prepare the buffer
+	std::vector<uint8_t> buffer(result_str.begin(), result_str.end());
+	uint32_t length = buffer.size();
+	uint8_t* data = new uint8_t[length];
+	std::copy(buffer.begin(), buffer.end(), data);
+
+	// Store the result in `result_var`
+	Value result(data, length, true);
+	setVar(result_var, result);
+}
+void VMCore::SYS_TO_STRING_SIGNED()
+{
+	// Pop the buffer (where result will be stored)
+	Value result_var = getVar();
+	// Pop the number to convert
+	Value number = getVar();
+
+	// Ensure number length is <= 4
+	if (number.length > 4)
+		DIE << "Number too bige!!1!";
+
+	// Convert the number to string
+	int32_t num = *reinterpret_cast<int32_t*>(number.data);
+	std::string result_str = std::to_string(num);
+
+	// Prepare the buffer
+	std::vector<uint8_t> buffer(result_str.begin(), result_str.end());
+	uint32_t length = buffer.size();
+	uint8_t* data = new uint8_t[length];
+	std::copy(buffer.begin(), buffer.end(), data);
+
+	// Store the result in `result_var`
+	Value result(data, length, true);
+	setVar(result_var, result);
+}
+void VMCore::SYS_TO_NUMBER_UNSIGNED()
+{
+	// Pop the string to convert
+	Value str_val = getVar();
+
+	// Extract the string from the Value
+	std::string str(str_val.data, str_val.data + str_val.length);
+
+	// Convert to unsigned number
+	try
+	{
+		unsigned long num = std::stoul(str);
+		if (num > std::numeric_limits<uint32_t>::max())
+			throw std::out_of_range("Number too large for uint32_t");
+
+		// Push the result as uint32_t
+		push(static_cast<uint32_t>(num));
+	}
+	catch (const std::exception& e)
+	{
+		DIE << "Invalid unsigned integer string: " << str << ", error: " << e.what();
+	}
+}
+void VMCore::SYS_TO_NUMBER_SIGNED()
+{
+	// Pop the string to convert
+	Value str_val = getVar();
+
+	// Extract the string from the Value
+	std::string str(str_val.data, str_val.data + str_val.length);
+
+	// Convert to signed number
+	try
+	{
+		long num = std::stol(str);
+		if (num < std::numeric_limits<int32_t>::min() || num > std::numeric_limits<int32_t>::max())
+			throw std::out_of_range("Number out of range for int32_t");
+
+		// Push the result as int32_t
+		push(static_cast<int32_t>(num));
+	}
+	catch (const std::exception& e)
+	{
+		DIE << "Invalid signed integer string: " << str << ", error: " << e.what();
+	}
+}
+
 #pragma endregion
 #pragma region Syscall_helpers
 void VMCore::print_raw(Value val)

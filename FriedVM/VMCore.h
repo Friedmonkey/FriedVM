@@ -82,6 +82,10 @@ private:
 	void SYS_READ();
 	void SYS_PRINT();
 	void SYS_DUMP();
+	void SYS_TO_STRING_UNSIGNED();
+	void SYS_TO_STRING_SIGNED();
+	void SYS_TO_NUMBER_UNSIGNED();
+	void SYS_TO_NUMBER_SIGNED();
 #pragma endregion
 #pragma region Syscall_helpers
 	void print_raw(Value val);
