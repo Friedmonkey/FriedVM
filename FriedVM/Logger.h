@@ -6,10 +6,11 @@
 class ErrorLogMessage : public std::basic_ostringstream<char>
 {
 public:
+static std::string current_instruction;
 	~ErrorLogMessage()
 	{
 		fflush(stdout);
-		fprintf(stderr, "\n\nFatal error: %s\n", str().c_str());
+		fprintf(stderr, "\n\nFatal error on %s: %s\n", current_instruction.c_str(), str().c_str());
 		exit(EXIT_FAILURE);
 	}
 

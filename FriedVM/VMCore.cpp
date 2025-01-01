@@ -103,6 +103,7 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		{
 			DIE << "instruction: " << instruction.op_name << " Exeeded the max amount of parameters!";
 		}
+		ErrorLogMessage::current_instruction = instruction.op_name;
 
 		auto params = binaryApi.GetParams(instruction);
 		instruction.execute(params, instruction.immediate, instruction.arg_size);
@@ -214,7 +215,7 @@ Value VMCore::makeValue(uint32_t value, bool immediate, uint8_t arg_size)
 void VMCore::checkVaribleIndex(uint32_t index)
 {
 	if (instance.meta.size() <= index)
-		DIE << "Varible with index " << HEX(index) << " does not exist!";
+		DIE << "Varible with index " << NUM(index) << "(" << HEX(index) << ") does not exist!";
 }
 void VMCore::GetStructFieldDetails(Value &struct_instance, uint32_t field_index, uint32_t *field_offset, uint8_t *field_length)
 {
