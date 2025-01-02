@@ -12,9 +12,9 @@ std::vector<INSTRUCTION> opcode_lookup =
 	{ iNOT, "NOT",			0 },
 	{ iCOMP, "COMP",		1 },
 	{ iJUMP, "JUMP",		1 },
-	{ iJUMP_IF, "JUMP_IF",	2 },
+	{ iJUMP_IF, "JUMP_IF",	1 },
 	{ iCALL, "CALL",		1 },
-	{ iCALL_IF, "CALL_IF",	2 },
+	{ iCALL_IF, "CALL_IF",	1 },
 	{ iRET, "RET",			0 },
 	{ iSYSCALL, "SYSCALL",	1 },
 	{ iEXIT, "EXIT",		0 },
@@ -27,4 +27,5 @@ std::vector<INSTRUCTION> opcode_lookup =
 	{ iSET_STRUCT, "SET_STRUCT",	2 },
 	{ iGET_STRUCT, "GET_STRUCT",	2 },
 	{ iGET_STRUCT, "CREATE_STRUCT",	2 },
+	{ iCHECK_STACK, "CHECK_STACK",	1 },
 };

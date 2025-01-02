@@ -120,6 +120,9 @@ uint8_t* FBinary::CastFromUint32(const uint32_t uint32, size_t count)
 }
 uint32_t FBinary::CastToUint32(const uint8_t* byteArray, size_t count)
 {
+	if (count > 4)
+		DIE << "Unsupported length for number, max is 4 bytes got " << NUM(count) << " instead!";
+
 	uint32_t result = 0;
 
 	for (size_t i = 0; i < count; ++i)

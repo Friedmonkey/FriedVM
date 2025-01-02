@@ -288,8 +288,11 @@ bool VMCore::getStackType(bool *immediate, uint8_t *arg_size)
 	else
 	{
 		uint8_t type = instance.stack_type.at(instance.sp - 1);
-		bool immediate = (type & 0b10000000) >> 7;
-		uint8_t arg_size = type & 0b01111111;
+		bool stck_immediate = (type & 0b10000000) >> 7;
+		uint8_t stck_arg_size = type & 0b01111111;
+
+		*immediate = stck_immediate;
+		*arg_size = stck_arg_size;
 		return true;
 	}
 }
@@ -393,6 +396,8 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iSET_STRUCT].execute = MAKE_EXECUTE(SET_STRUCT);
 	opcode_lookup[iGET_STRUCT].execute = MAKE_EXECUTE(GET_STRUCT);
 	opcode_lookup[iCREATE_STRUCT].execute = MAKE_EXECUTE(CREATE_STRUCT);
+
+	opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(CHECK_STACK);
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));
@@ -504,10 +509,9 @@ void VMCore::JUMP(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	Value param_value = makeValue(params[0], immediate, arg_size);
-	if (StackEquals(param_value))
+	if (pop() == iTRUE)
 	{
-		Jump(params[1], immediate);
+		Jump(params[0], immediate);
 	}
 }
 void VMCore::CALL(uint32_t* params, bool immediate, uint8_t arg_size)
@@ -596,13 +600,14 @@ void VMCore::BUFFER_UTIL(uint32_t* params, bool immediate, uint8_t arg_size)
 			{
 				case 'u': //unsigned int
 				{
-					uint32_t val = *reinterpret_cast<uint32_t*>(stack_val.data);
-					formatted = std::to_string(val);
+					uint32_t unsigned_val = binaryApi.CastToUint32(stack_val.data, stack_val.length);
+					formatted = std::to_string(unsigned_val);
 					break;
 				}
 				case 'd': //signed int
 				{
-					int32_t val = *reinterpret_cast<int32_t*>(stack_val.data);
+					uint32_t unsigned_val = binaryApi.CastToUint32(stack_val.data, stack_val.length);
+					int32_t val = static_cast<int32_t>(unsigned_val);
 					formatted = std::to_string(val);
 					break;
 				}
@@ -688,6 +693,14 @@ void VMCore::CREATE_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size)
 	instance.varibles[struct_instance_index] = new uint8_t[cache.total_size];
 
 	std::copy(cache.initial_data, cache.initial_data + cache.total_size, instance.varibles[struct_instance_index]);
+}
+void VMCore::CHECK_STACK(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	Value param_value = makeValue(params[0], immediate, arg_size);
+	if (StackEquals(param_value))
+		push(iTRUE);
+	else
+		push(iFALSE);
 }
 //void VMCore::GET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size)
 //{

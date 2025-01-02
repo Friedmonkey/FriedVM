@@ -62,7 +62,7 @@ public:
 #define iSET_STRUCT		0x14
 #define iGET_STRUCT		0x15
 #define iCREATE_STRUCT  0x16
-//#define i			0x17
+#define iCHECK_STACK	0x17
 //#define i			0x18
 //#define i			0x19
 //#define i			0x1A

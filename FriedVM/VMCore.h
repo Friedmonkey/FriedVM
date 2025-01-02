@@ -65,7 +65,7 @@ private:
 	void GET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size);
 	void CREATE_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size);
 	
-	//void VAR(uint32_t* params, bool immediate, uint8_t arg_size);
+	void CHECK_STACK(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void GET_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void POP_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
 	//void PSH_VAR(uint32_t* params, bool immediate, uint8_t arg_size);
