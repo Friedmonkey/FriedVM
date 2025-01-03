@@ -83,6 +83,7 @@ public:
 #define mmPOW 0x06
 #define mmROOT 0x07
 #define mmSQRT 0x08
+#define mmRAND 0x09
 
 //comp Modes
 #define cmGT 0x00

@@ -1,5 +1,6 @@
 #include "VMCore.h"
 #include <thread>
+#include <random>
 #include <chrono>
 
 void VMCore::Parse()
@@ -265,7 +266,7 @@ StructCache VMCore::CacheStructDefinition(uint32_t index)
 	if (struct_definition.length < sum)
 		DIE << "Invalid struct passed, size was too small!";
 
-	cache.total_size = structIndexByteCount + sum;
+	cache.total_size = sum + structIndexByteCount;
 	cache.initial_data = new uint8_t[cache.total_size];
 
 	//copy the struct definition address/index as 4 bytes (structIndexByteCount = 4 bytes)
@@ -296,6 +297,32 @@ bool VMCore::getStackType(bool *immediate, uint8_t *arg_size)
 		return true;
 	}
 }
+uint32_t VMCore::getUintVar()
+{
+	bool immediate = false;
+	uint8_t arg_size = 0;
+	bool success = getStackType(&immediate, &arg_size);
+	if (!success)
+	{
+		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+	}
+
+	uint32_t value = pop();
+
+	if (immediate)
+	{
+		return value;
+	}
+	else
+	{
+		Value val = makeValue(value, immediate, arg_size);
+		if (val.length > 4)
+			DIE << "Expected a number wich is max 4 bytes, but got " << NUM(val.length) << " bytes instead!";
+
+		uint32_t result = binaryApi.CastToUint32(val.data, val.length);
+		return result;
+	}
+}
 Value VMCore::getVar()
 {
 	bool immediate = false;
@@ -308,18 +335,6 @@ Value VMCore::getVar()
 
 	uint32_t value = pop();
 	return makeValue(value, immediate, arg_size);
-	//if (immediate)
-	//{
-	//	;
-	//	uint8_t *data = binaryApi.CastFromUint32(value, arg_size);
-	//	return Value(data, arg_size, true);
-	//}
-	//else
-	//{
-	//	uint32_t &length = instance.meta.at(value);
-	//	uint8_t* data = instance.varibles.at(value);
-	//	return Value(data, length, false, value);
-	//}
 }
 void VMCore::setVar(Value reference, Value newValue) {
 	//when setting something it needs to be a ref not immidate
@@ -443,9 +458,14 @@ void VMCore::MATH(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	uint32_t val1,val2 = 0;
 	auto math_mode = params[0];
+
+	// Initialize random engine with a device
+	static std::random_device rd;
+	static std::mt19937 gen(rd());  // Mersenne Twister engine for randomness
+
 	if (math_mode != mmINC && math_mode != mmDEC)
-		val2 = pop(); // Second operand
-	val1 = pop(); // First operand
+		val2 = getUintVar(); // Second operand
+	val1 = getUintVar(); // First operand
 	uint32_t result = 0;
 
 	switch (math_mode) {
@@ -458,6 +478,14 @@ void VMCore::MATH(uint32_t* params, bool immediate, uint8_t arg_size)
 		//case mmPOW: result = pow(val1, val2); break;
 		//case mmROOT: result = pow(val1, 1.0 / val2); break;
 		//case mmSQRT: result = sqrt(val1); break;
+		case mmRAND:
+		{
+			std::uniform_int_distribution<> distrib(val1, val2);
+
+			// Generate a random number between min and max
+			result = distrib(gen);
+			break;
+		}
 		default:
 			DIE << "Math mode with index " << HEX(math_mode) << " does not exist!";
 	}
@@ -465,19 +493,19 @@ void VMCore::MATH(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::AND(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val2 = pop();
-	auto val1 = pop();
+	auto val2 = getUintVar();
+	auto val1 = getUintVar();
 	push(val1 & val2);
 }
 void VMCore::OR(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
-	auto val2 = pop();
+	auto val1 = getUintVar();
+	auto val2 = getUintVar();
 	push(val1 | val2);
 }
 void VMCore::NOT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto val1 = pop();
+	auto val1 = getUintVar();
 	if (val1 == iFALSE) push(iTRUE);
 	else if (val1 == iTRUE) push(iFALSE);
 	else DIE << "Stack value expected a bool (0x00 or 0x01) but got " << HEX(val1) << "instead!";
@@ -485,8 +513,8 @@ void VMCore::NOT(uint32_t* params, bool immediate, uint8_t arg_size)
 void VMCore::COMP(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	auto compare_mode = params[0];
-	auto val2 = pop(); // Second operand
-	auto val1 = pop(); // First operand
+	auto val2 = getUintVar(); // Second operand
+	auto val1 = getUintVar(); // First operand
 	bool result = false;
 	switch (compare_mode) {
 		case cmGT: result = (val1 > val2); break;
@@ -509,7 +537,7 @@ void VMCore::JUMP(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	if (pop() == iTRUE)
+	if (getUintVar() == iTRUE)
 	{
 		Jump(params[0], immediate);
 	}
@@ -528,7 +556,7 @@ void VMCore::SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::EXIT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	uint32_t exitCode = pop();
+	uint32_t exitCode = getUintVar();
 	printf("\n\nExit was called with code: %d\n", exitCode);
 	exit(exitCode);
 }
@@ -654,7 +682,7 @@ void VMCore::SET_STRUCT(uint32_t* params, bool immediate, uint8_t arg_size)
 
 	GetStructFieldDetails(struct_instance, field_index, &field_offset, &field_length);
 
-	uint32_t value = pop();
+	uint32_t value = getUintVar();
 	uint8_t *data = binaryApi.CastFromUint32(value, field_length);
 	std::copy(data, data+field_length, struct_instance.data+field_offset);
 }
@@ -745,7 +773,7 @@ void VMCore::CHECK_STACK(uint32_t* params, bool immediate, uint8_t arg_size)
 #pragma region Syscalls
 void VMCore::SYS_PAUSE()
 {
-	uint32_t pause_ms = pop();
+	uint32_t pause_ms = getUintVar();
 	std::this_thread::sleep_for(std::chrono::milliseconds(pause_ms));
 }
 void VMCore::SYS_CLEAR_CONSOLE()
@@ -899,11 +927,6 @@ Value VMCore::read_raw() {
 		buffer.push_back(static_cast<uint8_t>(value));
 		value = getchar();
 	}
-
-	//while (stdin >> value) {
-	//	if (value < 0 || value > 255) break;  // Exit on out-of-range values
-	//	data.push_back(static_cast<uint8_t>(value));
-	//}
 
 	uint32_t length = buffer.size();
 	uint8_t* data = new uint8_t[length];

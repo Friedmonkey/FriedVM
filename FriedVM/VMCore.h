@@ -17,7 +17,7 @@ private:
 	//FStack stackApi;
 	void freeVarible(uint32_t index);
 	uint32_t pop();
-	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 1);
+	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 4);
 	uint32_t buffer_pop();
 	void buffer_push(Value value);
 	void syscall(uint32_t index);
@@ -26,6 +26,7 @@ private:
 	void GetStructFieldDetails(Value &struct_instance, uint32_t field_index, uint32_t *field_offset, uint8_t *field_length);
 	StructCache CacheStructDefinition(uint32_t index);
 	bool getStackType(bool* immediate, uint8_t* arg_size);
+	uint32_t getUintVar();
 	Value getVar();
 	void setVar(Value reference, Value newValue);
 	void Jump(uint32_t offset, bool immidiate);
