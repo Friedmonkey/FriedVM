@@ -908,6 +908,13 @@ void VMCore::SYS_TO_NUMBER_SIGNED()
 	}
 }
 
+void VMCore::SYS_INPUT_TO_STRUCT()
+{
+	auto struc = getVar();
+	//parse struct default values and use those as scan codes
+	//then use those to get if key is down or not for all of them and set 1 for down 0 for up
+}
+
 #pragma endregion
 #pragma region Syscall_helpers
 void VMCore::print_raw(Value val)

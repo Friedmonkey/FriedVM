@@ -87,6 +87,7 @@ private:
 	void SYS_TO_STRING_SIGNED();
 	void SYS_TO_NUMBER_UNSIGNED();
 	void SYS_TO_NUMBER_SIGNED();
+	void SYS_INPUT_TO_STRUCT();
 #pragma endregion
 #pragma region Syscall_helpers
 	void print_raw(Value val);
