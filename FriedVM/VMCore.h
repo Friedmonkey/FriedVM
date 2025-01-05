@@ -3,6 +3,7 @@
 #include <string>
 #include "VMInstance.h"
 #include "FBinary.h"
+#include "InputManager.h"
 
 class VMCore : VMInstanceBase
 {
@@ -14,7 +15,8 @@ public:
 	bool StackEquals(Value& param_value);
 private:
 	FBinary binaryApi;
-	//FStack stackApi;
+	InputManager inputManager;
+
 	void freeVarible(uint32_t index);
 	uint32_t pop();
 	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 4);
@@ -23,6 +25,7 @@ private:
 	void syscall(uint32_t index);
 	Value makeValue(uint32_t value, bool immediate, uint8_t arg_size);
 	void checkVaribleIndex(uint32_t index);
+	void GetStructCache(Value& struct_instance, StructCache* cache);
 	void GetStructFieldDetails(Value &struct_instance, uint32_t field_index, uint32_t *field_offset, uint8_t *field_length);
 	StructCache CacheStructDefinition(uint32_t index);
 	bool getStackType(bool* immediate, uint8_t* arg_size);
@@ -83,10 +86,14 @@ private:
 	void SYS_READ();
 	void SYS_PRINT();
 	void SYS_DUMP();
+
 	void SYS_TO_STRING_UNSIGNED();
 	void SYS_TO_STRING_SIGNED();
 	void SYS_TO_NUMBER_UNSIGNED();
 	void SYS_TO_NUMBER_SIGNED();
+
+	void SYS_INPUT_MODE_READ();
+	void SYS_INPUT_MODE_WRITE();
 	void SYS_INPUT_TO_STRUCT();
 #pragma endregion
 #pragma region Syscall_helpers

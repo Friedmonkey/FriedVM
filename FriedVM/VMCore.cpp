@@ -218,17 +218,22 @@ void VMCore::checkVaribleIndex(uint32_t index)
 	if (instance.meta.size() <= index)
 		DIE << "Varible with index " << NUM(index) << "(" << HEX(index) << ") does not exist!";
 }
-void VMCore::GetStructFieldDetails(Value &struct_instance, uint32_t field_index, uint32_t *field_offset, uint8_t *field_length)
+
+void VMCore::GetStructCache(Value &struct_instance, StructCache *cache)
 {
 	if (struct_instance.length < structIndexByteCount)
 		DIE << "Invalid struct passed (too small for index)";
 
 	uint32_t index = binaryApi.CastToUint32(struct_instance.data, structIndexByteCount);
-	StructCache cache;
 	if (instance.structCache.find(index) != instance.structCache.end())
-		cache = instance.structCache[index];
+		*cache = instance.structCache[index];
 	else
-		cache = CacheStructDefinition(index);
+		*cache = CacheStructDefinition(index);
+}
+void VMCore::GetStructFieldDetails(Value &struct_instance, uint32_t field_index, uint32_t *field_offset, uint8_t *field_length)
+{
+	StructCache cache;
+	GetStructCache(struct_instance, &cache);
 
 	if (struct_instance.length < cache.total_size)
 		DIE << "Struct instance was too small";
@@ -259,7 +264,7 @@ StructCache VMCore::CacheStructDefinition(uint32_t index)
 	{
 		uint8_t length = struct_definition.data[struct_offset + i];
 		cache.lengths.push_back(length);
-		cache.offsets.push_back(sum + struct_offset + amount_of_fields);
+		cache.offsets.push_back(sum + structIndexByteCount);
 		sum += length;
 	}
 
@@ -425,6 +430,10 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_SIGNED));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_UNSIGNED));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_SIGNED));
+
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_INPUT_MODE_READ));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_INPUT_MODE_WRITE));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_INPUT_TO_STRUCT));
 #pragma endregion
 }
 
@@ -908,11 +917,39 @@ void VMCore::SYS_TO_NUMBER_SIGNED()
 	}
 }
 
+void VMCore::SYS_INPUT_MODE_READ()
+{
+	inputManager.setInputModeReading();
+}
+
+void VMCore::SYS_INPUT_MODE_WRITE()
+{
+	inputManager.setInputModePrinting();
+}
+
 void VMCore::SYS_INPUT_TO_STRUCT()
 {
-	auto struc = getVar();
-	//parse struct default values and use those as scan codes
-	//then use those to get if key is down or not for all of them and set 1 for down 0 for up
+	Value struct_instance = getVar();
+	if (struct_instance.immediate)
+		DIE << "struct input can't be used with immediate value";
+
+	StructCache cache;
+	GetStructCache(struct_instance, &cache);
+
+	if (struct_instance.length < cache.total_size)
+		DIE << "Struct instance was too small";
+
+	for (size_t i = 0; i < cache.offsets.size(); i++)
+	{
+		uint32_t field_offset = cache.offsets[i];
+		uint8_t field_length = cache.lengths[i];
+		uint32_t scan_code = binaryApi.CastToUint32(&cache.initial_data[field_offset], field_length);
+
+		bool result = inputManager.getKeyDown(static_cast<int32_t>(scan_code));
+		uint8_t *data = binaryApi.CastFromUint32(result, field_length);
+
+		std::copy(data, data+field_length, struct_instance.data+field_offset);
+	}
 }
 
 #pragma endregion
