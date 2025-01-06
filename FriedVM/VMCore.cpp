@@ -401,7 +401,7 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(JUMP_IF);
 
 	opcode_lookup[iCALL].execute = MAKE_EXECUTE(CALL);
-	//opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(CALL_IF);
+	opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(CALL_IF);
 	opcode_lookup[iRET].execute = MAKE_EXECUTE(RET);
 
 	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(SYSCALL);
@@ -434,6 +434,9 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_INPUT_MODE_READ));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_INPUT_MODE_WRITE));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_INPUT_TO_STRUCT));
+
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_SET_CONSOLE_CURSOR));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_GET_CONSOLE_CURSOR));
 #pragma endregion
 }
 
@@ -555,6 +558,13 @@ void VMCore::CALL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	Call(params[0], immediate);
 }
+void VMCore::CALL_IF(uint32_t* params, bool immediate, uint8_t arg_size)
+{
+	if (getUintVar() == iTRUE)
+	{
+		Call(params[0], immediate);
+	}
+}
 void VMCore::RET(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	Return();
@@ -565,6 +575,7 @@ void VMCore::SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::EXIT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
+	inputManager.setInputModePrinting(); //reset cursor mode
 	uint32_t exitCode = getUintVar();
 	printf("\n\nExit was called with code: %d\n", exitCode);
 	exit(exitCode);
@@ -787,7 +798,8 @@ void VMCore::SYS_PAUSE()
 }
 void VMCore::SYS_CLEAR_CONSOLE()
 {
-	DIE << "syscall SYS_CLEAR not implemented!";
+	inputManager.clearScreen();
+	//DIE << "syscall SYS_CLEAR not implemented!";
 }
 
 void VMCore::SYS_READ()
@@ -950,6 +962,23 @@ void VMCore::SYS_INPUT_TO_STRUCT()
 
 		std::copy(data, data+field_length, struct_instance.data+field_offset);
 	}
+	fflush(stdin);
+}
+
+void VMCore::SYS_SET_CONSOLE_CURSOR()
+{
+	uint32_t y = getUintVar();
+	uint32_t x = getUintVar();
+	inputManager.setCursor(x, y);
+}
+
+void VMCore::SYS_GET_CONSOLE_CURSOR()
+{
+	int32_t y = 0;
+	int32_t x = 0;
+	inputManager.getCursor(&x, &y);
+	push(y);
+	push(x);
 }
 
 #pragma endregion

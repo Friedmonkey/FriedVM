@@ -52,7 +52,7 @@ private:
 	void JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size);
 
 	void CALL(uint32_t* params, bool immediate, uint8_t arg_size);
-	//void CALL_IF(uint32_t* params, bool immediate, uint8_t arg_size);
+	void CALL_IF(uint32_t* params, bool immediate, uint8_t arg_size);
 
 	void RET(uint32_t* params, bool immediate, uint8_t arg_size);
 	//
@@ -95,6 +95,9 @@ private:
 	void SYS_INPUT_MODE_READ();
 	void SYS_INPUT_MODE_WRITE();
 	void SYS_INPUT_TO_STRUCT();
+
+	void SYS_SET_CONSOLE_CURSOR();
+	void SYS_GET_CONSOLE_CURSOR();
 #pragma endregion
 #pragma region Syscall_helpers
 	void print_raw(Value val);
