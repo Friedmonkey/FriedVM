@@ -468,8 +468,17 @@ void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::MATH(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	uint32_t val1,val2 = 0;
-	auto math_mode = params[0];
+	uint32_t val1 = 0,val2 = 0, math_mode = 0;
+	//malke method to get uint32t
+	// 
+	// makeUint(params[0], immidate, arg_size)
+	// 
+	// getuintvar will use it internally too
+	// 
+	//if (immediate)
+
+	////uint32_t math_mode = getUintVar();
+	//auto  = params[0];
 
 	// Initialize random engine with a device
 	static std::random_device rd;
