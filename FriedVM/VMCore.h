@@ -29,6 +29,7 @@ private:
 	void GetStructFieldDetails(Value &struct_instance, uint32_t field_index, uint32_t *field_offset, uint8_t *field_length);
 	StructCache CacheStructDefinition(uint32_t index);
 	bool getStackType(bool* immediate, uint8_t* arg_size);
+	uint32_t makeUint(uint32_t value, bool immediate, uint8_t arg_size);
 	uint32_t getUintVar();
 	Value getVar();
 	void setVar(Value reference, Value newValue);

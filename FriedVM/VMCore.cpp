@@ -302,18 +302,8 @@ bool VMCore::getStackType(bool *immediate, uint8_t *arg_size)
 		return true;
 	}
 }
-uint32_t VMCore::getUintVar()
+uint32_t VMCore::makeUint(uint32_t value, bool immediate, uint8_t arg_size)
 {
-	bool immediate = false;
-	uint8_t arg_size = 0;
-	bool success = getStackType(&immediate, &arg_size);
-	if (!success)
-	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
-	}
-
-	uint32_t value = pop();
-
 	if (immediate)
 	{
 		return value;
@@ -327,6 +317,20 @@ uint32_t VMCore::getUintVar()
 		uint32_t result = binaryApi.CastToUint32(val.data, val.length);
 		return result;
 	}
+}
+uint32_t VMCore::getUintVar()
+{
+	bool immediate = false;
+	uint8_t arg_size = 0;
+	bool success = getStackType(&immediate, &arg_size);
+	if (!success)
+	{
+		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+	}
+
+	uint32_t value = pop();
+
+	return makeUint(value, immediate, arg_size);
 }
 Value VMCore::getVar()
 {
@@ -468,17 +472,9 @@ void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::MATH(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	uint32_t val1 = 0,val2 = 0, math_mode = 0;
-	//malke method to get uint32t
-	// 
-	// makeUint(params[0], immidate, arg_size)
-	// 
-	// getuintvar will use it internally too
-	// 
-	//if (immediate)
-
-	////uint32_t math_mode = getUintVar();
-	//auto  = params[0];
+	uint32_t val1 = 0,val2 = 0;
+	
+	uint32_t math_mode = makeUint(params[0], immediate, arg_size);
 
 	// Initialize random engine with a device
 	static std::random_device rd;
@@ -533,7 +529,7 @@ void VMCore::NOT(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::COMP(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto compare_mode = params[0];
+	uint32_t compare_mode = makeUint(params[0], immediate, arg_size);
 	auto val2 = getUintVar(); // Second operand
 	auto val1 = getUintVar(); // First operand
 	bool result = false;
@@ -580,7 +576,7 @@ void VMCore::RET(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::SYSCALL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	syscall(params[0]);
+	syscall(makeUint(params[0], immediate, arg_size));
 }
 void VMCore::EXIT(uint32_t* params, bool immediate, uint8_t arg_size)
 {
@@ -615,7 +611,7 @@ void VMCore::PUSH_BUFFER(uint32_t* params, bool immediate, uint8_t arg_size)
 
 void VMCore::BUFFER_UTIL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	auto buffer_mode = params[0];
+	uint32_t buffer_mode = makeUint(params[0], immediate, arg_size);
 	switch (buffer_mode) {
 	case bmCLEAR: instance.varible_buffer.clear(); break;
 	case bmPOP_TO_STACK: push(buffer_pop()); break;
