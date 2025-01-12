@@ -4,12 +4,40 @@
 #include <cstdint>
 #include "Logger.h"
 #include <unordered_map>
+#include "Types/BaseValue.h"
 
 struct StructCache {
 	std::vector<uint32_t> offsets;
 	std::vector<uint8_t> lengths;
 	uint32_t total_size = 0;
 	uint8_t *initial_data = 0;
+};
+struct Value
+{
+public:
+	Value(uint8_t* pData, uint32_t mLength, bool mImmediate = true, uint32_t mIndex = 0) : data(pData), length(mLength), immediate(mImmediate), index(mIndex)
+	{
+
+	}
+	uint8_t* data;
+	union {
+		uint8_t uint8;
+		uint32_t uint32;
+		uint64_t uint64;
+
+		int8_t int8;
+		int32_t int32;
+		int64_t int64;
+
+		float_t float32;
+		double_t double64;
+	};
+	bool pointer;
+	uint8_t type;
+
+	uint32_t length;
+	uint32_t index;
+	bool immediate;
 };
 struct VMInstance
 {
@@ -23,6 +51,7 @@ public:
 	std::vector<uint32_t> stack;
 	std::vector<uint8_t> stack_type;
 
+	std::vector<Value> declares;
 	std::vector<uint32_t> meta;
 	std::vector<uint8_t*> varibles;
 	uint32_t declare_size = 0;

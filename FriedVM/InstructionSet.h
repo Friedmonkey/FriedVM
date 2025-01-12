@@ -24,19 +24,6 @@ public:
 	//void (*execute)(uint8_t params[]);
 };
 
-struct Value
-{
-public:
-	Value(uint8_t *pData, uint32_t mLength, bool mImmediate = true, uint32_t mIndex = 0) : data(pData), length(mLength), immediate(mImmediate), index(mIndex)
-	{
-
-	}
-	uint8_t *data;
-	uint32_t length;
-	uint32_t index;
-	bool immediate;
-};
-
 #define iPUSH		0x00
 #define iPOP		0x01
 #define iDUP		0x02
