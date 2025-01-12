@@ -3,12 +3,21 @@
 #include <vector>
 #include <cstdint>
 #include "Logger.h"
+#include <unordered_map>
 
+struct StructCache {
+	std::vector<uint32_t> offsets;
+	std::vector<uint8_t> lengths;
+	uint32_t total_size = 0;
+	uint8_t *initial_data = 0;
+};
 struct VMInstance
 {
 public:
 	uint64_t pc = 0;
 	std::vector<uint8_t> bytecode;
+
+	std::vector<uint64_t> call_stack;
 
 	uint8_t sp = 0;
 	std::vector<uint32_t> stack;
@@ -16,11 +25,17 @@ public:
 
 	std::vector<uint32_t> meta;
 	std::vector<uint8_t*> varibles;
+	uint32_t declare_size = 0;
+
+	std::vector<uint8_t> varible_buffer;
+
+	std::unordered_map<uint32_t, StructCache> structCache;
 
 	uint64_t instructionStart = 0;
-	uint8_t version = 1;
 	uint8_t header_size = 8;
 	uint8_t meta_size = 4;
+	uint8_t emptyVar_size = 2;
+	uint8_t version = 1;
 
 	bool hasSymbols;
 	std::vector<uint8_t> symbols_length;

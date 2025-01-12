@@ -11,6 +11,7 @@ public:
 	void ParseMagic();
 	INSTRUCTION GetInstruction();
 	uint32_t* GetParams(INSTRUCTION& instruction);
+	uint64_t ParseEmptyVarCount();
 	uint64_t ParseMeta();
 	uint64_t ParseAddress();
 	uint8_t* CastFromUint32(const uint32_t uint32, size_t count);

@@ -24,13 +24,6 @@ public:
 	//void (*execute)(uint8_t params[]);
 };
 
-//struct OpcodeArguments
-//{
-//	uint32_t *params;
-//	bool immediate;
-//	uint8_t arg_size;
-//};
-
 struct Value
 {
 public:
@@ -47,41 +40,71 @@ public:
 #define iPUSH		0x00
 #define iPOP		0x01
 #define iDUP		0x02
-#define iVAR		0x03
-#define iGET_VAR	0x04
-#define iPOP_VAR	0x05
-#define iPSH_VAR	0x06
-#define iMOV_VAR	0x07
-#define iDEL		0x08
-#define iADD		0x09
-#define iSUB		0x0A
-#define iMUL		0x0B
-#define iDIV		0x0C
-#define iAND		0x0D
-#define iOR			0x0E
-#define iNOT		0x0F
-#define iEQ			0x10
-#define iNEQ		0x11
-#define iGT			0x12
-#define iGTEQ		0x13
-#define iLT			0x14
-#define iLTEQ		0x15
-#define iJUMP		0x16
-#define iJUMP_IF	0x17
-#define iCALL		0x18
-#define iCALL_IF	0x19
-#define iRET		0x1A
-#define iSYSCALL	0x1B
-#define iEXIT		0x1C
+#define iMATH		0x03
+#define iAND		0x04
+#define iOR			0x05
+#define iNOT		0x06
+#define iCOMP		0x07
 
-#define iJUMP_IF_STACK	0x1D
-#define iINC	0x1E
-#define iDEC	0x1F
+#define iJUMP		0x08
+#define iJUMP_IF	0x09
+#define iCALL		0x0A
+#define iCALL_IF	0x0B
+#define iRET		0x0C
+#define iSYSCALL	0x0D
+#define iEXIT		0x0E
 
+#define iSET_BUFFER		0x0F
+#define iGET_BUFFER		0x10
+#define iPUSH_BUFFER	0x11
+#define iBUFFER_UTIL	0x12
+#define iSET_VAR		0x13
+#define iSET_STRUCT		0x14
+#define iGET_STRUCT		0x15
+#define iCREATE_STRUCT  0x16
+#define iCHECK_STACK	0x17
+//#define i			0x18
+//#define i			0x19
+//#define i			0x1A
+//#define i			0x1B
+//#define i			0x1C
+//#define i			0x1D
+//#define i			0x1E
+//#define i			0x1F
+
+
+//math Modes
+#define mmADD 0x00
+#define mmSUB 0x01
+#define mmINC 0x02
+#define mmDEC 0x03
+#define mmMUL 0x04
+#define mmDIV 0x05
+#define mmPOW 0x06
+#define mmROOT 0x07
+#define mmSQRT 0x08
+#define mmRAND 0x09
+
+//comp Modes
+#define cmGT 0x00
+#define cmGTE 0x01
+#define cmLT 0x02
+#define cmLTE 0x03
+#define cmEQ 0x04
+#define cmNEQ 0x05
+
+//buffer Modes
+#define bmCLEAR				0x00
+#define bmPOP_TO_STACK		0x01
+#define bmPUSH_FROM_STACK	0x02
+#define bmREMOVE_FROM_END	0x03
+#define bmFORMAT			0x04
+//#define bm					0x05
 
 #define iTRUE		0x01
 #define iFALSE		0x00
 
+const uint8_t structIndexByteCount = 4;
 const uint8_t maxParamCount = 2;
 //magic = FXE
 const uint8_t file_magic[] = { 0x46, 0x58, 0x45 };
