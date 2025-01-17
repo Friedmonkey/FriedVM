@@ -1,6 +1,12 @@
 #pragma once
 #include "BaseValue.h"
 
+#define TYPECAST(type)                                                              \
+const auto* type##Value = dynamic_cast<const NumberValue<type##_t>*>(otherValue);   \
+if (type##Value) {                                                                  \
+return static_cast<T>(type##Value->internal_value);                                 \
+}                                                                                       
+
 template <typename T>
 class NumberValue : public BaseValue {
 public:
@@ -53,6 +59,19 @@ protected:
         if (numberValue) {
             return numberValue->internal_value;
         }
+
+        TYPECAST(uint8)
+        TYPECAST(uint16)
+        TYPECAST(uint32)
+        TYPECAST(uint64)
+
+        TYPECAST(int8)
+        TYPECAST(int16)
+        TYPECAST(int32)
+        TYPECAST(int64)
+
+        TYPECAST(float)
+        TYPECAST(double)
 
         // For mismatched types, handle conversion from data (extend as needed)
         return ConvertFromData(otherValue);

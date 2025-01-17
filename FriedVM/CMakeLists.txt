@@ -3,7 +3,7 @@
 #
 
 # Add source to this project's executable.
-add_executable (FriedVM "FriedVM.cpp" "FriedVM.h" "VMCore.h" "VMCore.cpp" "InstructionSet.h" "Logger.h" "FBinary.h" "FBinary.cpp" "VMInstance.h" "InstructionSet.cpp" "Logger.cpp" "InputManager.h" "InputManager.cpp" "Types/BaseValue.h"  "Types/NumberValue.h"  "Types/Int32Value.h")
+add_executable (FriedVM "FriedVM.cpp" "FriedVM.h" "VMCore.h" "VMCore.cpp" "InstructionSet.h" "Logger.h" "FBinary.h" "FBinary.cpp" "VMInstance.h" "InstructionSet.cpp" "Logger.cpp" "InputManager.h" "InputManager.cpp" "Types/BaseValue.h"  "Types/NumberValue.h"  "Types/NumberTypes.h"  "Types/RawValueType.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET FriedVM PROPERTY CXX_STANDARD 20)

@@ -20,20 +20,6 @@ public:
 
 	}
 	uint8_t* data;
-	union {
-		uint8_t uint8;
-		uint32_t uint32;
-		uint64_t uint64;
-
-		int8_t int8;
-		int32_t int32;
-		int64_t int64;
-
-		float_t float32;
-		double_t double64;
-	};
-	bool pointer;
-	uint8_t type;
 
 	uint32_t length;
 	uint32_t index;
@@ -51,7 +37,8 @@ public:
 	std::vector<uint32_t> stack;
 	std::vector<uint8_t> stack_type;
 
-	std::vector<Value> declares;
+	std::vector<BaseValue> declares;
+
 	std::vector<uint32_t> meta;
 	std::vector<uint8_t*> varibles;
 	uint32_t declare_size = 0;

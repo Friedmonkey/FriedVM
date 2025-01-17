@@ -7,6 +7,9 @@ enum ValueType
 {
 	//vt_bool,
 	//vt_char,
+	//vt_string,
+	vt_raw,
+
 	vt_uint8_t,
 	vt_uint16_t,
 	vt_uint32_t,
