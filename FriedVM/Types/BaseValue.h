@@ -21,9 +21,16 @@ struct BaseValue
     // Constructor to initialize the BaseValue
     BaseValue(ValueType t, size_t len) : type{ 0 }, length(len) {
         type_index = t;  // Initialize the type
-        data = new uint8_t[length * getTypeSize(t)]; // Allocate memory for the data
+        data = new uint8_t[length]; // Allocate memory for the data
         isArray = false;  // Default is not an array
     }
+
+    //// Constructor to initialize the BaseValue
+    //BaseValue(ValueType t, size_t len) : type{ 0 }, length(len) {
+    //    type_index = t;  // Initialize the type
+    //    data = new uint8_t[length * getTypeSize(t)]; // Allocate memory for the data
+    //    isArray = false;  // Default is not an array
+    //}
 
     // Destructor to free the allocated memory
     ~BaseValue() {
@@ -34,24 +41,32 @@ struct BaseValue
     constexpr static size_t getTypeSize(ValueType type);
 
     // Static factory methods for creating BaseValue instances
-    static BaseValue makeRaw(uint8_t* data, size_t len) {
-        BaseValue val(vt_raw, len);
-        std::memcpy(val.data, data, len);  // Copy the raw data
-        return val;
-    }
+    template<typename T>
+    static BaseValue makeValue(ValueType type, T value) {
 
-    static BaseValue makeNumber(ValueType t, void* value) {
-        BaseValue val(t, 1); // Only one element (a single number)
-        std::memcpy(val.data, value, getTypeSize(t));  // Copy the value
+        BaseValue val(type, getTypeSize(type));
+        std::memcpy(val.data, &value, sizeof(T));  // Copy the raw data
         return val;
     }
+    //// Static factory methods for creating BaseValue instances
+    //static BaseValue makeRaw(uint8_t* data, size_t len) {
+    //    BaseValue val(vt_raw, len);
+    //    std::memcpy(val.data, data, len);  // Copy the raw data
+    //    return val;
+    //}
 
-    static BaseValue makeArray(ValueType t, void* arr, size_t len) {
-        BaseValue val(t, len);
-        std::memcpy(val.data, arr, len * getTypeSize(t));  // Copy the array data
-        val.isArray = true;  // Set the isArray flag
-        return val;
-    }
+    //static BaseValue makeNumber(ValueType t, void* value) {
+    //    BaseValue val(t, 1); // Only one element (a single number)
+    //    std::memcpy(val.data, value, getTypeSize(t));  // Copy the value
+    //    return val;
+    //}
+
+    //static BaseValue makeArray(ValueType t, void* arr, size_t len) {
+    //    BaseValue val(t, len);
+    //    std::memcpy(val.data, arr, len * getTypeSize(t));  // Copy the array data
+    //    val.isArray = true;  // Set the isArray flag
+    //    return val;
+    //}
 
     // Helper methods to manipulate the union members (isArray & type_index)
     void setIsArray(bool isArrayFlag) {
@@ -112,21 +127,31 @@ struct BaseValue
     // Template function for adding two BaseValue instances
     template<typename T>
     BaseValue AddTyped(const BaseValue& v1, const BaseValue& v2) {
-        if (v1.length != v2.length) {
-            throw std::runtime_error("Length mismatch in Add");
+        if (v1.type_index != v2.type_index) {
+            DIE << "Type mismatch in AddTyped";
         }
 
-        // Create result BaseValue (same type and length as v1)
-        BaseValue result(v1.type_index, v1.length);
-
-        for (size_t i = 0; i < v1.length; i++) {
-            T val1 = reinterpret_cast<T*>(v1.data)[i];
-            T val2 = reinterpret_cast<T*>(v2.data)[i];
-            reinterpret_cast<T*>(result.data)[i] = val1 + val2; // Perform addition
+        // Ensure the size of T matches the type size of v1
+        if (sizeof(T) != getTypeSize(v1.type_index)) {
+            DIE << "Size mismatch between T and BaseValue type";
         }
 
-        return result;
+        // Now, we assume the data in v1 and v2 is of the correct length and type
+        // Cast the data from uint8_t* to T* (the target type, e.g., uint32_t*)
+        T* data1 = reinterpret_cast<T*>(v1.data);
+        T* data2 = reinterpret_cast<T*>(v2.data);
+
+        // Perform the addition
+        T result = *data1 + *data2;
+
+        return makeValue<T>(v1.type_index, result);
+        //// Create a new BaseValue to store the result
+        //BaseValue resultVal(v1.type_index, 1);  // Only one element in the result
+        //std::memcpy(resultVal.data, &result, sizeof(T));  // Copy the result back into the data
+
+        //return resultVal;
     }
+
 
     BaseValue Add(const BaseValue& v1, const BaseValue& v2);
 };

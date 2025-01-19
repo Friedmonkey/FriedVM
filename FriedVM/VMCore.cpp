@@ -174,6 +174,23 @@ void VMCore::push(uint32_t value, bool immediate, uint8_t arg_size)
 	instance.stack.push_back(value);
 	instance.stack_type.push_back((immediate << 7) | (arg_size & 0b01111111));
 }
+
+BaseValue VMCore::typed_pop()
+{
+	if (instance.sp == 0)
+	{
+		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+	}
+	instance.sp--;
+	BaseValue value = instance.typed_stack.at(instance.sp);
+	instance.typed_stack.pop_back();
+	return value;
+}
+void VMCore::typed_push(BaseValue value)
+{
+	instance.sp++;
+	instance.typed_stack.push_back(value);
+}
 uint32_t VMCore::buffer_pop()
 {
 	if (instance.varible_buffer.size() == 0)

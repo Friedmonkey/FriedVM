@@ -20,6 +20,8 @@ private:
 	void freeVarible(uint32_t index);
 	uint32_t pop();
 	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 4);
+	BaseValue typed_pop();
+	void typed_push(BaseValue value);
 	uint32_t buffer_pop();
 	void buffer_push(Value value);
 	void syscall(uint32_t index);

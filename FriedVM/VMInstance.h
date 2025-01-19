@@ -37,6 +37,8 @@ public:
 	std::vector<uint32_t> stack;
 	std::vector<uint8_t> stack_type;
 
+	std::vector<BaseValue> typed_stack;
+
 	std::vector<BaseValue> declares;
 
 	std::vector<uint32_t> meta;
