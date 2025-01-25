@@ -3,6 +3,7 @@
 #include <memory>
 #include "../Logger.h"
 #include "Types.h"
+#include <functional>
 
 struct BaseValue
 {
@@ -38,15 +39,25 @@ struct BaseValue
     }
 
     // Function to get the size of the element based on the type
-    constexpr static size_t getTypeSize(ValueType type);
+    static size_t getTypeSize(ValueType type);
 
     // Static factory methods for creating BaseValue instances
     template<typename T>
     static BaseValue makeValue(ValueType type, T value) {
-
-        BaseValue val(type, getTypeSize(type));
-        std::memcpy(val.data, &value, sizeof(T));  // Copy the raw data
+        auto size1 = getTypeSize(type);
+        auto size2 = sizeof(T);
+        BaseValue val(type, size1);
+        std::memcpy(val.data, &value, size2);  // Copy the raw data
         return val;
+    }
+
+    template<typename T>
+    static T getValue(BaseValue value) {
+
+        if (value.length != getTypeSize(value.type_index))
+            DIE << "Type mismatch idk?";
+        T* result = reinterpret_cast<T*>(value.data);
+        return *result;
     }
     //// Static factory methods for creating BaseValue instances
     //static BaseValue makeRaw(uint8_t* data, size_t len) {
@@ -126,7 +137,7 @@ struct BaseValue
     //}
     // Template function for adding two BaseValue instances
     template<typename T>
-    BaseValue AddTyped(const BaseValue& v1, const BaseValue& v2) {
+    static BaseValue HandleTyped(const BaseValue& v1, const BaseValue& v2, std::function<T(T,T)> operation) {
         if (v1.type_index != v2.type_index) {
             DIE << "Type mismatch in AddTyped";
         }
@@ -142,7 +153,8 @@ struct BaseValue
         T* data2 = reinterpret_cast<T*>(v2.data);
 
         // Perform the addition
-        T result = *data1 + *data2;
+        T result = operation(*data1, *data2);
+
 
         return makeValue<T>(v1.type_index, result);
         //// Create a new BaseValue to store the result
@@ -152,6 +164,55 @@ struct BaseValue
         //return resultVal;
     }
 
+    //template<typename T>
+    //static BaseValue AddTyped(const BaseValue& v1, const BaseValue& v2)
+    //{
+    //    return HandleTyped<T>(v1, v2, [](T a, T b) {
+    //        return a + b;
+    //    });
+    //}
 
-    BaseValue Add(const BaseValue& v1, const BaseValue& v2);
+    //BaseValue ExecuteTyped(Func func, const BaseValue& v1, const BaseValue& v2);
+    template <typename Func>
+    static BaseValue ExecuteTyped(Func func, const BaseValue& v1, const BaseValue& v2) {
+        // Validate if both values are numbers
+        if (!v1.isNumber() || !v2.isNumber()) {
+            DIE << "Cannot add non-number values";
+        }
+        //if (v1.type_index != v2.type_index || v1.length != v2.length) {
+        //    // Cast v2 to the same type as v1
+        //    BaseValue casted = v2.Cast(v1.type_index);
+        //    return Add(v1, casted);  // Now they are both of the same type
+        //}
+
+        BaseValue result(v1.type_index, v1.length);
+
+        // Dispatch based on type
+        switch (v1.type_index) {
+        case vt_uint8_t:   result = func.template operator()<uint8_t>(v1, v2); break;
+        case vt_uint16_t:  result = func.template operator()<uint16_t>(v1, v2); break;
+        case vt_uint32_t:  result = func.template operator()<uint32_t>(v1, v2); break;
+        case vt_uint64_t:  result = func.template operator()<uint64_t>(v1, v2); break;
+        case vt_int8_t:    result = func.template operator()<int8_t>(v1, v2); break;
+        case vt_int16_t:   result = func.template operator()<int16_t>(v1, v2); break;
+        case vt_int32_t:   result = func.template operator()<int32_t>(v1, v2); break;
+        case vt_int64_t:   result = func.template operator()<int64_t>(v1, v2); break;
+        case vt_float_t:   result = func.template operator()<float>(v1, v2); break;
+        case vt_double_t:  result = func.template operator()<double>(v1, v2); break;
+        default:
+            DIE << "Unsupported type in Add";
+        }
+
+        return result;
+    }
+
+    static struct AddTypedFunctor {
+        template <typename T>
+        BaseValue operator()(const BaseValue& v1, const BaseValue& v2) const {
+            //return BaseValue::AddTyped<T>(v1, v2);
+            return HandleTyped<T>(v1, v2, [](T a, T b) {
+                return a + b;
+            });
+        }
+    };
 };
