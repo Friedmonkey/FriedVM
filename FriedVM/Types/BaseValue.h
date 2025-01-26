@@ -11,6 +11,15 @@ struct BaseValue
     size_t length;
     ValueType type_index;
 
+    union {
+        uint8_t metadata;
+        struct
+        {
+            bool isConst : 1;
+            uint8_t rest : 7;
+        };
+    };
+
     // Constructor to initialize the BaseValue
     BaseValue(ValueType t, size_t len) : type_index(t), length(len) {
         //type_index = t;  // Initialize the type
