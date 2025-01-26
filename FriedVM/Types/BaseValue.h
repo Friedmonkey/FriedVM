@@ -22,7 +22,7 @@ struct BaseValue
     // Constructor to initialize the BaseValue
     BaseValue(ValueType t, size_t len) : type{ 0 }, length(len) {
         type_index = t;  // Initialize the type
-        data = new uint8_t[length]; // Allocate memory for the data
+        data = new uint8_t[length](); // Allocate memory for the data
         isArray = false;  // Default is not an array
     }
 
@@ -43,22 +43,27 @@ struct BaseValue
 
     // Static factory methods for creating BaseValue instances
     template<typename T>
-    static BaseValue makeValue(ValueType type, T value) {
+    static BaseValue* makeValue(ValueType type, T value) {
         auto size1 = getTypeSize(type);
         auto size2 = sizeof(T);
-        BaseValue val(type, size1);
-        std::memcpy(val.data, &value, size2);  // Copy the raw data
+        BaseValue* val = new BaseValue(type, size1);
+        std::memcpy(val->data, &value, size2);  // Copy the raw data
         return val;
     }
 
     template<typename T>
-    static T getValue(BaseValue value) {
+    static T getValue(const BaseValue* value) {
+        // Verify the length matches the expected type size
+        if (value->length != getTypeSize(value->type_index))
+            DIE << "Type mismatch: stored data doesn't match requested type!";
 
-        if (value.length != getTypeSize(value.type_index))
-            DIE << "Type mismatch idk?";
-        T* result = reinterpret_cast<T*>(value.data);
-        return *result;
+        // Create a temporary variable to store the value
+        T result;
+        // Safely copy the data into the result variable
+        std::memcpy(&result, value->data, sizeof(T));
+        return result;
     }
+
     //// Static factory methods for creating BaseValue instances
     //static BaseValue makeRaw(uint8_t* data, size_t len) {
     //    BaseValue val(vt_raw, len);
@@ -137,7 +142,7 @@ struct BaseValue
     //}
     // Template function for adding two BaseValue instances
     template<typename T>
-    static BaseValue HandleTyped(const BaseValue& v1, const BaseValue& v2, std::function<T(T,T)> operation) {
+    static BaseValue* HandleTyped(const BaseValue& v1, const BaseValue& v2, std::function<T(T,T)> operation) {
         if (v1.type_index != v2.type_index) {
             DIE << "Type mismatch in AddTyped";
         }
@@ -174,9 +179,14 @@ struct BaseValue
 
     //BaseValue ExecuteTyped(Func func, const BaseValue& v1, const BaseValue& v2);
     template <typename Func>
-    static BaseValue ExecuteTyped(Func func, const BaseValue& v1, const BaseValue& v2) {
+    static BaseValue* ExecuteTyped(Func func, const BaseValue* v1, const BaseValue* v2) {
+        if (!v1 || !v2) {
+            DIE << "Null pointer passed to ExecuteTyped";
+            //return nullptr;
+        }
+
         // Validate if both values are numbers
-        if (!v1.isNumber() || !v2.isNumber()) {
+        if (!v1->isNumber() || !v2->isNumber()) {
             DIE << "Cannot add non-number values";
         }
         //if (v1.type_index != v2.type_index || v1.length != v2.length) {
@@ -185,10 +195,10 @@ struct BaseValue
         //    return Add(v1, casted);  // Now they are both of the same type
         //}
 
-        BaseValue result(v1.type_index, v1.length);
+        BaseValue* result = new BaseValue(v1->type_index, v1->length);
 
         // Dispatch based on type
-        switch (v1.type_index) {
+        switch (v1->type_index) {
         case vt_uint8_t:   result = func.template operator()<uint8_t>(v1, v2); break;
         case vt_uint16_t:  result = func.template operator()<uint16_t>(v1, v2); break;
         case vt_uint32_t:  result = func.template operator()<uint32_t>(v1, v2); break;
@@ -200,7 +210,7 @@ struct BaseValue
         case vt_float_t:   result = func.template operator()<float>(v1, v2); break;
         case vt_double_t:  result = func.template operator()<double>(v1, v2); break;
         default:
-            DIE << "Unsupported type in Add";
+            DIE << "Unsupported type in ExecuteTyped";
         }
 
         return result;
@@ -208,9 +218,8 @@ struct BaseValue
 
     static struct AddTypedFunctor {
         template <typename T>
-        BaseValue operator()(const BaseValue& v1, const BaseValue& v2) const {
-            //return BaseValue::AddTyped<T>(v1, v2);
-            return HandleTyped<T>(v1, v2, [](T a, T b) {
+        BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
+            return HandleTyped<T>(*v1, *v2, [](T a, T b) {
                 return a + b;
             });
         }

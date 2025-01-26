@@ -6,12 +6,12 @@
 void VMCore::Parse()
 {
 	uint32_t value = 50;
-	auto var1 = BaseValue::makeValue(vt_uint32_t, value);
+	BaseValue* var1 = BaseValue::makeValue(vt_uint32_t, value);
 
 	uint32_t value2 = 20;
-	auto var2 = BaseValue::makeValue(vt_uint32_t, value2);
+	BaseValue* var2 = BaseValue::makeValue(vt_uint32_t, value2);
 
-	auto result = BaseValue::ExecuteTyped(BaseValue::AddTypedFunctor(), var1, var2);
+	BaseValue* result = BaseValue::ExecuteTyped(BaseValue::AddTypedFunctor(), var1, var2);
 	//auto result = BaseValue::ExecuteTyped(BaseValue::AddTyped, var1, var2);
 
 	uint32_t castedResult = BaseValue::getValue<uint32_t>(result);
