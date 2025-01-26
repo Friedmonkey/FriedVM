@@ -17,11 +17,17 @@ private:
 	FBinary binaryApi;
 	InputManager inputManager;
 
+	varible typed_pop();
+	void typed_push(varible value);
+
+	template<typename T>
+	T safe_cast(varible var);
+
+	varible dup(varible value);
+
 	void freeVarible(uint32_t index);
 	uint32_t pop();
 	void push(uint32_t value, bool immediate = true, uint8_t arg_size = 4);
-	BaseValue typed_pop();
-	void typed_push(BaseValue value);
 	uint32_t buffer_pop();
 	void buffer_push(Value value);
 	void syscall(uint32_t index);
@@ -38,6 +44,12 @@ private:
 	void Jump(uint32_t offset, bool immidiate);
 	void Call(uint32_t offset, bool immidiate);
 	void Return();
+#pragma region typed_Instructions
+	void typed_PUSH(varible* params);
+	void typed_POP(varible* params);
+	void typed_DUP(varible* params);
+	void typed_EXIT(varible* params);
+#pragma endregion
 #pragma region Instructions
 	void PUSH(uint32_t* params, bool immediate, uint8_t arg_size);
 	void POP(uint32_t* params, bool immediate, uint8_t arg_size);

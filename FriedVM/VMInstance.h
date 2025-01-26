@@ -25,6 +25,9 @@ public:
 	uint32_t index;
 	bool immediate;
 };
+
+typedef BaseValue* varible;
+
 struct VMInstance
 {
 public:
@@ -37,13 +40,14 @@ public:
 	std::vector<uint32_t> stack;
 	std::vector<uint8_t> stack_type;
 
-	std::vector<BaseValue> typed_stack;
-
-	std::vector<BaseValue> declares;
-
 	std::vector<uint32_t> meta;
 	std::vector<uint8_t*> varibles;
 	uint32_t declare_size = 0;
+
+
+	std::vector<varible> typed_stack;
+	std::vector<varible> typed_varibles;
+
 
 	std::vector<uint8_t> varible_buffer;
 

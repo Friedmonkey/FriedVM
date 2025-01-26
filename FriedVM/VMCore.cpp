@@ -6,12 +6,12 @@
 void VMCore::Parse()
 {
 	uint32_t value = 50;
-	BaseValue* var1 = BaseValue::makeValue(vt_uint32_t, value);
+	varible var1 = BaseValue::makeValue(vt_uint32_t, value);
 
 	uint32_t value2 = 20;
-	BaseValue* var2 = BaseValue::makeValue(vt_uint32_t, value2);
+	varible var2 = BaseValue::makeValue(vt_uint32_t, value2);
 
-	BaseValue* result = BaseValue::ExecuteTyped(BaseValue::AddTypedFunctor(), var1, var2);
+	varible result = BaseValue::ExecuteTyped(BaseValue::SubTypedFunctor(), var1, var2);
 	//auto result = BaseValue::ExecuteTyped(BaseValue::AddTyped, var1, var2);
 
 	uint32_t castedResult = BaseValue::getValue<uint32_t>(result);
@@ -158,6 +158,33 @@ bool VMCore::StackEquals(Value &param_value)
 	}
 	return false;
 }
+
+template<typename T>
+T VMCore::safe_cast(varible var)
+{
+	return BaseValue::getValue<T>(var);
+}
+varible VMCore::typed_pop()
+{
+	if (instance.sp == 0)
+	{
+		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+	}
+	instance.sp--;
+	varible value = instance.typed_stack.at(instance.sp);
+	instance.typed_stack.pop_back();
+	return value;
+}
+void VMCore::typed_push(varible value)
+{
+	instance.sp++;
+	instance.typed_stack.push_back(value);
+}
+varible VMCore::dup(varible value)
+{
+	return BaseValue::dupValue(value);
+}
+
 void VMCore::freeVarible(uint32_t index)
 {
 	checkVaribleIndex(index);
@@ -185,23 +212,6 @@ void VMCore::push(uint32_t value, bool immediate, uint8_t arg_size)
 	instance.sp++;
 	instance.stack.push_back(value);
 	instance.stack_type.push_back((immediate << 7) | (arg_size & 0b01111111));
-}
-
-BaseValue VMCore::typed_pop()
-{
-	if (instance.sp == 0)
-	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
-	}
-	instance.sp--;
-	BaseValue value = instance.typed_stack.at(instance.sp);
-	instance.typed_stack.pop_back();
-	return value;
-}
-void VMCore::typed_push(BaseValue value)
-{
-	instance.sp++;
-	instance.typed_stack.push_back(value);
 }
 uint32_t VMCore::buffer_pop()
 {
@@ -473,6 +483,38 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 #pragma endregion
 }
 
+#pragma region typed_Instructions
+void VMCore::typed_PUSH(varible* params)
+{
+	typed_push(params[0]);
+}
+void VMCore::typed_POP(varible* params)
+{
+	typed_pop();
+}
+void VMCore::typed_DUP(varible* params)
+{
+	uint32_t params0 = safe_cast<uint32_t>(params[0]);
+
+	uint32_t index = instance.sp - (params0 + 1);
+
+	if (index < 0 || params0 + 1 > instance.sp)
+	{
+		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << HEX(instance.pc);
+	}
+
+	varible value = dup(instance.typed_stack.at(index));
+	typed_push(value);
+}
+
+void VMCore::typed_EXIT(varible* params)
+{
+	inputManager.setInputModePrinting(); //reset cursor mode
+	int32_t exitCode = safe_cast<int32_t>(typed_pop());
+	printf("\n\nExit was called with code: %d\n", exitCode);
+	exit(exitCode);
+}
+#pragma endregion
 #pragma region Instructions
 void VMCore::PUSH(uint32_t* params, bool immediate, uint8_t arg_size)
 {

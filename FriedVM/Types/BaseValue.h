@@ -9,21 +9,13 @@ struct BaseValue
 {
     uint8_t* data;
     size_t length;
-
-    // Union to store type and array information in 1 byte using bitfields
-    union {
-        uint8_t type;  // Type of the data (e.g., UINT32, FLOAT)
-        struct {
-            bool isArray : 1;  // Topmost bit for isArray (1 bit)
-            ValueType type_index : 7; // Remaining 7 bits for type_index
-        };
-    };
+    ValueType type_index;
 
     // Constructor to initialize the BaseValue
-    BaseValue(ValueType t, size_t len) : type{ 0 }, length(len) {
-        type_index = t;  // Initialize the type
+    BaseValue(ValueType t, size_t len) : type_index(t), length(len) {
+        //type_index = t;  // Initialize the type
         data = new uint8_t[length](); // Allocate memory for the data
-        isArray = false;  // Default is not an array
+        //isArray = false;  // Default is not an array
     }
 
     //// Constructor to initialize the BaseValue
@@ -44,10 +36,8 @@ struct BaseValue
     // Static factory methods for creating BaseValue instances
     template<typename T>
     static BaseValue* makeValue(ValueType type, T value) {
-        auto size1 = getTypeSize(type);
-        auto size2 = sizeof(T);
-        BaseValue* val = new BaseValue(type, size1);
-        std::memcpy(val->data, &value, size2);  // Copy the raw data
+        BaseValue* val = new BaseValue(type, getTypeSize(type));
+        std::memcpy(val->data, &value, sizeof(T));  // Copy the raw data
         return val;
     }
 
@@ -62,6 +52,13 @@ struct BaseValue
         // Safely copy the data into the result variable
         std::memcpy(&result, value->data, sizeof(T));
         return result;
+    }
+
+    static BaseValue* dupValue(const BaseValue* value) {
+        auto size = value->length;
+        BaseValue* val = new BaseValue(value->type_index, size);
+        std::memcpy(val->data, value->data, size);
+        return val;
     }
 
     //// Static factory methods for creating BaseValue instances
@@ -84,10 +81,10 @@ struct BaseValue
     //    return val;
     //}
 
-    // Helper methods to manipulate the union members (isArray & type_index)
-    void setIsArray(bool isArrayFlag) {
-        isArray = isArrayFlag;
-    }
+    //// Helper methods to manipulate the union members (isArray & type_index)
+    //void setIsArray(bool isArrayFlag) {
+    //    isArray = isArrayFlag;
+    //}
 
     void setTypeIndex(ValueType type) {
         type_index = type;
@@ -215,13 +212,36 @@ struct BaseValue
 
         return result;
     }
-
     static struct AddTypedFunctor {
         template <typename T>
         BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
             return HandleTyped<T>(*v1, *v2, [](T a, T b) {
                 return a + b;
-            });
+                });
+        }
+    };
+    static struct SubTypedFunctor {
+        template <typename T>
+        BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
+            return HandleTyped<T>(*v1, *v2, [](T a, T b) {
+                return a - b;
+                });
+        }
+    };
+    static struct MulTypedFunctor {
+        template <typename T>
+        BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
+            return HandleTyped<T>(*v1, *v2, [](T a, T b) {
+                return a * b;
+                });
+        }
+    };
+    static struct DivTypedFunctor {
+        template <typename T>
+        BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
+            return HandleTyped<T>(*v1, *v2, [](T a, T b) {
+                return a / b;
+                });
         }
     };
 };
