@@ -4,7 +4,7 @@
 // Function to get the size of the element based on the type
 size_t BaseValue::getTypeSize(ValueType type) {
     switch (type) {
-    case vt_raw: return 4;
+    //case vt_raw: return 4;
     case vt_uint8_t: return sizeof(uint8_t);
     case vt_uint16_t: return sizeof(uint16_t);
     case vt_uint32_t: return sizeof(uint32_t);
@@ -16,7 +16,7 @@ size_t BaseValue::getTypeSize(ValueType type) {
     case vt_float_t: return sizeof(float);
     case vt_double_t: return sizeof(double);
     case vt_pointer: return 4;
-    default: return 0;
+    default: DIE << "unhandled type";
     }
 }
 
