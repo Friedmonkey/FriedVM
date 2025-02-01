@@ -21,9 +21,10 @@ struct BaseValue
     };
 
     // Constructor to initialize the BaseValue
-    BaseValue(ValueType t, size_t len) : type_index(t), length(len) {
+    BaseValue(ValueType t, size_t len, uint8_t meta = 0) : type_index(t), length(len), metadata(meta) {
         //type_index = t;  // Initialize the type
         data = new uint8_t[length](); // Allocate memory for the data
+        //metadata = 0;
         //isArray = false;  // Default is not an array
     }
 
@@ -41,6 +42,14 @@ struct BaseValue
 
     // Function to get the size of the element based on the type
     static size_t getTypeSize(ValueType type);
+
+    static void FillDefaultValue(BaseValue *value);
+
+    static BaseValue* createValue(ValueType type) {
+        BaseValue* val = new BaseValue(type, getTypeSize(type));
+        //std::memcpy(val->data, &value, sizeof(T));  // Copy the raw data
+        return val;
+    }
 
     // Static factory methods for creating BaseValue instances
     template<typename T>
@@ -65,7 +74,7 @@ struct BaseValue
 
     static BaseValue* dupValue(const BaseValue* value) {
         auto size = value->length;
-        BaseValue* val = new BaseValue(value->type_index, size);
+        BaseValue* val = new BaseValue(value->type_index, size, value->metadata);
         std::memcpy(val->data, value->data, size);
         return val;
     }

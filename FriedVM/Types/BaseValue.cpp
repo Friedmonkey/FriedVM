@@ -20,6 +20,24 @@ size_t BaseValue::getTypeSize(ValueType type) {
     }
 }
 
+void BaseValue::FillDefaultValue(BaseValue *value) {
+    switch (value->type_index) {
+        //case vt_raw: return 4;
+    case vt_uint8_t: value->data = new uint8_t[1]{ 0x00 };
+    case vt_uint16_t: value->data = new uint8_t[2]{ 0x00, 0x00 };
+    case vt_uint32_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 };
+    case vt_uint64_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    case vt_int8_t: value->data = new uint8_t[1]{ 0x00 };
+    case vt_int16_t: value->data = new uint8_t[2]{ 0x00, 0x00 };
+    case vt_int32_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 };
+    case vt_int64_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    case vt_float_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 };
+    case vt_double_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    //case vt_pointer: return 4;
+    default: DIE << "unhandled type";
+    }
+}
+
 bool BaseValue::isNumber() const {
     // Return true if the type is one of the numeric types
     return type_index == vt_uint8_t || type_index == vt_uint16_t ||

@@ -16,7 +16,6 @@ enum ValueType
     vt_float_t =        0x19,   // 50f  - float, float32, f32
     vt_double_t =       0x1A,   // 50d  - double, float64, f64
 
-
     vt_label =          0xE0,   // :hello
 
     //complex types

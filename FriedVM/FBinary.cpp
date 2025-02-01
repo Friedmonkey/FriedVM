@@ -5,7 +5,7 @@
 //the same version but with symbols is !,@,#,$,%,^,&,*,(
 void FBinary::ParseMagic()
 {
-	bool hasSymbols = false;
+	//bool hasSymbols = false;
 	auto magic_size = sizeof(file_magic) / sizeof(*file_magic);
 	magic_size++; //the version
 	if (instance.bytecode.size() < (instance.pc + magic_size))
@@ -17,18 +17,18 @@ void FBinary::ParseMagic()
 	{
 		if (i == magic_size-1) //the version
 		{
-			constexpr uint8_t size_map[4] = { 1, 2, 4, 8 };
+			//constexpr uint8_t size_map[4] = { 1, 2, 4, 8 };
 			uint8_t info_byte = instance.bytecode[instance.pc + i];
 
-			uint8_t header_size = size_map[(info_byte & 0b11000000) >> 6];
-			uint8_t meta_size = size_map[(info_byte &   0b00110000) >> 4];
-			uint8_t emptyVar_size = size_map[(info_byte&0b00001100) >> 2];
-			hasSymbols = (info_byte & 0b00000010) >> 1;
-			uint8_t version = (info_byte & 0b00000001);
+			//uint8_t header_size = size_map[(info_byte & 0b11000000) >> 6];
+			//uint8_t meta_size = size_map[(info_byte &   0b00110000) >> 4];
+			//uint8_t emptyVar_size = size_map[(info_byte&0b00001100) >> 2];
+			bool hasSymbols = (info_byte & 0b10000000) >> 7;
+			uint8_t version = (info_byte & 0b01111111);
 
-			instance.header_size = header_size;
-			instance.meta_size = meta_size;
-			instance.emptyVar_size = emptyVar_size;
+			//instance.header_size = header_size;
+			//instance.meta_size = meta_size;
+			//instance.emptyVar_size = emptyVar_size;
 			instance.hasSymbols = hasSymbols;
 			instance.version = version;
 		}
@@ -75,6 +75,29 @@ INSTRUCTION FBinary::GetInstruction()
 	}
 }
 
+uint64_t FBinary::VLQ()
+{
+	uint64_t value = 0;
+	uint8_t shift = 0;
+	uint8_t byte = 0;
+
+	do
+	{
+		byte = GetByte();
+		value |= (uint64_t)(byte & 0x7F) << shift; // Mask out MSB and shift
+		shift += 7;
+
+		if (shift >= 64) // Prevent overflow
+		{
+			DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
+		}
+
+	} while (byte & 0x80); // Continue if MSB is 1
+
+	return value;
+}
+
+
 uint32_t* FBinary::GetParams(INSTRUCTION &instruction)
 {
 	if (instruction.paramCount > maxParamCount)
@@ -97,13 +120,70 @@ uint64_t FBinary::ParseEmptyVarCount()
 	return CastToUint64(ReadBytes(instance.emptyVar_size), instance.emptyVar_size);
 }
 
-uint64_t FBinary::ParseMeta()
+varible FBinary::ParseTypeByte(std::vector<uint8_t> &complex_buffer, bool canBeComplex)
 {
-	return CastToUint64(ReadBytes(instance.meta_size), instance.meta_size);
+	ValueType type_byte = static_cast<ValueType>(GetByte());
+
+	if (type_byte == vt_constant)
+	{
+		varible val = ParseTypeByte(complex_buffer);
+		val->isConst = true;
+		return val;
+	}
+	else if (type_byte == vt_array)
+	{ //only if vt_complex_type using make_type
+		//length vlq
+		uint8_t byte;
+		do
+		{
+			byte = GetByte();
+			complex_buffer.push_back(byte);
+		}
+		while (byte & 0x80);
+		ParseTypeByte(complex_buffer);
+	}
+	else
+	{
+		return BaseValue::createValue(type_byte);
+	}
+	//if (IsComplexType(type_byte))
+	//{
+	//}
+	//else
+	//{
+	//	BaseValue::getTypeSize(type_byte);
+	//}
+	//return type_byte;
+	//for (uint8_t i = 0; i < count; i++)
+	//{
+	//	buffer[i] = instance.bytecode[instance.pc + i];
+	//}
+	//instance.pc += count;
+	//return buffer;
+	//return CastToUint64(ReadBytes(instance.meta_size), instance.meta_size);
+}
+bool FBinary::IsComplexType(ValueType vt)
+{
+	switch (vt)
+	{
+	case vt_string:
+	case vt_constant:
+	case vt_complex_type:
+	case vt_struct:
+	case vt_array:
+		return true;
+	case vt_pointer:
+		return true;
+	default:
+		return false;
+		break;
+	}
+	return false;
 }
 uint64_t FBinary::ParseAddress()
 {
-	return CastToUint64(ReadBytes(instance.header_size), instance.header_size);
+	return VLQ();
+	//return CastToUint64(ReadBytes(instance.header_size), instance.header_size);
 }
 
 uint8_t* FBinary::CastFromUint32(const uint32_t uint32, size_t count)
@@ -144,14 +224,23 @@ uint64_t FBinary::CastToUint64(const uint8_t* byteArray, size_t count)
 	return result;
 }
 
+uint8_t FBinary::GetByte()
+{
+	if (instance.bytecode.size() < (instance.pc + 1))
+	{
+		DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(instance.pc + 1) << ")";
+	}
+	return instance.bytecode[instance.pc++];
+}
+
 uint8_t* FBinary::ReadBytes(uint8_t count)
 {
-	uint8_t* buffer = new uint8_t[count];
 	if (instance.bytecode.size() < (instance.pc+count))
 	{
 		DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(instance.pc + count) << ")";
-		return buffer;
 	}
+
+	uint8_t* buffer = new uint8_t[count];
 
 	for (uint8_t i = 0; i < count; i++)
 	{

@@ -5,21 +5,24 @@
 
 void VMCore::Parse()
 {
-	uint32_t value = 50;
-	varible var1 = BaseValue::makeValue(vt_uint32_t, value);
+	//auto vlqresult = binaryApi.VLQ();
 
-	uint32_t value2 = 20;
-	varible var2 = BaseValue::makeValue(vt_uint32_t, value2);
 
-	varible result = BaseValue::ExecuteTyped(BaseValue::SubTypedFunctor(), var1, var2);
-	//auto result = BaseValue::ExecuteTyped(BaseValue::AddTyped, var1, var2);
-
-	uint32_t castedResult = BaseValue::getValue<uint32_t>(result);
+	//uint32_t value = 50;
+	//varible var1 = BaseValue::makeValue(vt_uint32_t, value);
+	//
+	//uint32_t value2 = 20;
+	//varible var2 = BaseValue::makeValue(vt_uint32_t, value2);
+	//
+	//varible result = BaseValue::ExecuteTyped(BaseValue::SubTypedFunctor(), var1, var2);
+	////auto result = BaseValue::ExecuteTyped(BaseValue::AddTyped, var1, var2);
+	//
+	//uint32_t castedResult = BaseValue::getValue<uint32_t>(result);
 
 
 	binaryApi.ParseMagic();
-	uint64_t emptyVarCount = binaryApi.ParseEmptyVarCount();
-	instance.instructionStart= binaryApi.ParseAddress();
+	//uint64_t emptyVarCount = binaryApi.ParseEmptyVarCount();
+	instance.instructionStart = binaryApi.ParseAddress();
 	uint64_t constPoolStart = binaryApi.ParseAddress();
 	uint64_t symbolsStart = 0;
 	if (instance.hasSymbols)
@@ -28,31 +31,49 @@ void VMCore::Parse()
 	}
 	uint64_t totalLength = 0;
 #pragma region Declares & Symbols
+	std::vector<uint8_t> complex_buffer;
 	while(instance.pc < instance.instructionStart) //declare section
 	{
-		uint64_t length = binaryApi.ParseMeta();
-		auto position = totalLength + constPoolStart;
-		if (instance.bytecode.size() < (position + length))
-		{
-			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(position + length) << ")";
-		}
-		uint8_t *buffer = new uint8_t[length];
-		for (size_t i = 0; i < length; i++)
-		{
-			buffer[i] = instance.bytecode[position + i];
-		}
-		totalLength += length;
+		varible var_type = binaryApi.ParseTypeByte(complex_buffer);
+		auto declaredDefault = binaryApi.VLQ();
+		auto declaredValue = binaryApi.VLQ();
 
-		instance.meta.push_back(length);
-		instance.varibles.push_back(buffer);
-		instance.declare_size++;
+		for (size_t i = 0; i < declaredDefault; i++)
+		{
+			varible newVarible = BaseValue::dupValue(var_type);
+			BaseValue::FillDefaultValue(newVarible);
+			instance.typed_varibles.push_back(newVarible);
+		}
+		for (size_t i = 0; i < declaredValue; i++)
+		{
+			varible newVarible = BaseValue::dupValue(var_type);
+			//fill from const pool
+			instance.typed_varibles.push_back(var_type);
+		}
+		////uint8_t type_byte = 
+
+		//auto position = totalLength + constPoolStart;
+		//if (instance.bytecode.size() < (position + length))
+		//{
+		//	DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(position + length) << ")";
+		//}
+		//uint8_t *buffer = new uint8_t[length];
+		//for (size_t i = 0; i < length; i++)
+		//{
+		//	buffer[i] = instance.bytecode[position + i];
+		//}
+		//totalLength += length;
+
+		//instance.meta.push_back(length);
+		//instance.varibles.push_back(buffer);
+		//instance.declare_size++;
 	}
 	instance.declare_size--; //size not count
-	for (uint64_t i = 0; i < emptyVarCount; i++) //allocate room for empty varibles
-	{
-		instance.meta.push_back(0);
-		instance.varibles.push_back(nullptr);
-	}
+	//for (uint64_t i = 0; i < emptyVarCount; i++) //allocate room for empty varibles
+	//{
+	//	instance.meta.push_back(0);
+	//	instance.varibles.push_back(nullptr);
+	//}
 	if (instance.hasSymbols && instance.pc == instance.instructionStart) //symbol section
 	{
 		totalLength = symbolsStart;
