@@ -20,6 +20,7 @@ enum ValueType
     vt_label =          0xE0,   // :hello
 
     //complex types
+    vt_constant =       0xFB,   // for constant values (header only) constant<int>
     vt_complex_type =   0xFC,   // only used in header, basicly means Read TypedByte system() usefull if u reuse a certain type
     vt_struct =         0xFD,   // struct { field int age; }
     vt_array =          0xFE,   // array[5]<int>, arr[5]<char> 

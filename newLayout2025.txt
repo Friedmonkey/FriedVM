@@ -42,7 +42,12 @@ if (symbols)
 
 varibles/types definitions:
 while (pc < program start address)
-	TypeByte, amount with default value, amount with embedded value, amount constant
+{
+
+	//TypeByte, amount with default value, amount with embedded value, amount constant
+	const TypeByte, amount with default value, amount with embedded value
+	TypeByte, amount with default value, amount with embedded value
+}
 
 program start address:
 while (pc < const pool address)
