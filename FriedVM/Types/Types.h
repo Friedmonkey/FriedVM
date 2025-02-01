@@ -16,6 +16,9 @@ enum ValueType
     vt_float_t =        0x19,   // 50f  - float, float32, f32
     vt_double_t =       0x1A,   // 50d  - double, float64, f64
 
+
+    vt_label =          0xE0,   // :hello
+
     //complex types
     vt_complex_type =   0xFC,   // only used in header, basicly means Read TypedByte system() usefull if u reuse a certain type
     vt_struct =         0xFD,   // struct { field int age; }
