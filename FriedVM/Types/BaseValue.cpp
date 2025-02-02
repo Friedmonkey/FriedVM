@@ -4,7 +4,8 @@
 // Function to get the size of the element based on the type
 size_t BaseValue::getTypeSize(ValueType type) {
     switch (type) {
-    //case vt_raw: return 4;
+    case vt_raw: return 0;
+    case vt_string: return 0;
     case vt_uint8_t: return sizeof(uint8_t);
     case vt_uint16_t: return sizeof(uint16_t);
     case vt_uint32_t: return sizeof(uint32_t);
@@ -15,7 +16,9 @@ size_t BaseValue::getTypeSize(ValueType type) {
     case vt_int64_t: return sizeof(int64_t);
     case vt_float_t: return sizeof(float);
     case vt_double_t: return sizeof(double);
+
     case vt_pointer: return 4;
+    case vt_array: return 0;
     default: DIE << "unhandled type";
     }
 }
@@ -23,18 +26,26 @@ size_t BaseValue::getTypeSize(ValueType type) {
 void BaseValue::FillDefaultValue(BaseValue *value) {
     switch (value->type_index) {
         //case vt_raw: return 4;
-    case vt_uint8_t: value->data = new uint8_t[1]{ 0x00 };
-    case vt_uint16_t: value->data = new uint8_t[2]{ 0x00, 0x00 };
-    case vt_uint32_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 };
-    case vt_uint64_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    case vt_int8_t: value->data = new uint8_t[1]{ 0x00 };
-    case vt_int16_t: value->data = new uint8_t[2]{ 0x00, 0x00 };
-    case vt_int32_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 };
-    case vt_int64_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    case vt_float_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 };
-    case vt_double_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    case vt_uint8_t: value->data = new uint8_t[1]{ 0x00 }; break;
+    case vt_uint16_t: value->data = new uint8_t[2]{ 0x00, 0x00 }; break;
+    case vt_uint32_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 }; break;
+    case vt_uint64_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; break;
+    case vt_int8_t: value->data = new uint8_t[1]{ 0x00 }; break;
+    case vt_int16_t: value->data = new uint8_t[2]{ 0x00, 0x00 }; break;
+    case vt_int32_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 }; break;
+    case vt_int64_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; break;
+    case vt_float_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 }; break;
+    case vt_double_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; break;
     //case vt_pointer: return 4;
-    default: DIE << "unhandled type";
+    }
+
+    if (value->type_index == vt_string)
+    {
+        value->data = new uint8_t[0];
+    }
+    else
+    {
+        DIE << "unhandled type";
     }
 }
 

@@ -115,6 +115,51 @@ uint32_t* FBinary::GetParams(INSTRUCTION &instruction)
 
 	return params;
 }
+void FBinary::FillData(size_t *position, varible varible)
+{
+	size_t pos = *position;
+	if (IsComplexType(varible->type_index))
+	{
+		size_t post_type_size = 0;//BaseValue::getTypeSize(varible->type_index);
+		size_t size = varible->length + post_type_size;
+		uint8_t* buffer = new uint8_t[size];
+	}
+	else
+	{
+		size_t size = BaseValue::getTypeSize(varible->type_index);
+		bool isCorrectSize = varible->length == size;
+
+		uint8_t* buffer = isCorrectSize ? varible->data : new uint8_t[size];
+
+		for (size_t i = 0; i < size; i++)
+		{
+			buffer[i] = instance.bytecode[pos + i];
+		}
+
+		if (!isCorrectSize)
+		{	//we need to swap te buffers
+			delete[] varible->data;
+			varible->data = buffer;
+		}
+	}
+
+	//auto position = totalLength + constPoolStart;
+	//totalLength += size;
+
+	//for (size_t i = 0; i < length; i++)
+	//{
+	//	if (i > newVarible->length)
+	//	{
+	//		buffer[i] = instance.bytecode[position + i];
+	//	}
+	//	else
+	//	{
+	//		buffer[i] = newVarible->data[i];
+	//	}
+	//}
+
+
+}
 uint64_t FBinary::ParseEmptyVarCount()
 {
 	return CastToUint64(ReadBytes(instance.emptyVar_size), instance.emptyVar_size);
@@ -130,18 +175,22 @@ varible FBinary::ParseTypeByte(std::vector<uint8_t> &complex_buffer, bool canBeC
 		val->isConst = true;
 		return val;
 	}
-	else if (type_byte == vt_array)
-	{ //only if vt_complex_type using make_type
-		//length vlq
-		uint8_t byte;
-		do
-		{
-			byte = GetByte();
-			complex_buffer.push_back(byte);
-		}
-		while (byte & 0x80);
-		ParseTypeByte(complex_buffer);
-	}
+	//else if (type_byte == vt_string)
+	//{
+	//	return BaseValue::createValue(type_byte);
+	//}
+	//else if (type_byte == vt_array)
+	//{ //only if vt_complex_type using make_type
+	//	//length vlq
+	//	uint8_t byte;
+	//	do
+	//	{
+	//		byte = GetByte();
+	//		complex_buffer.push_back(byte);
+	//	}
+	//	while (byte & 0x80);
+	//	ParseTypeByte(complex_buffer);
+	//}
 	else
 	{
 		return BaseValue::createValue(type_byte);
@@ -171,6 +220,23 @@ bool FBinary::IsComplexType(ValueType vt)
 	case vt_complex_type:
 	case vt_struct:
 	case vt_array:
+		return true;
+	case vt_pointer:
+		return true;
+	default:
+		return false;
+		break;
+	}
+	return false;
+}
+bool FBinary::IsHeaderComplexType(ValueType vt)
+{
+	switch (vt)
+	{
+	case vt_lazy:
+	case vt_constant:
+	case vt_complex_type:
+	case vt_struct:
 		return true;
 	case vt_pointer:
 		return true;

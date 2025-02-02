@@ -12,9 +12,11 @@ public:
 	INSTRUCTION GetInstruction();
 	uint64_t VLQ();
 	uint32_t* GetParams(INSTRUCTION& instruction);
+	void FillData(size_t* position, varible varible);
 	uint64_t ParseEmptyVarCount();
 	varible ParseTypeByte(std::vector<uint8_t>& complex_buffer, bool canBeComplex = true);
 	bool IsComplexType(ValueType vt);
+	bool IsHeaderComplexType(ValueType vt);
 	uint64_t ParseAddress();
 	uint8_t* CastFromUint32(const uint32_t uint32, size_t count);
 	uint32_t CastToUint32(const uint8_t* byteArray, size_t count);

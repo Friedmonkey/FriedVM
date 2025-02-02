@@ -47,12 +47,32 @@ void VMCore::Parse()
 		for (size_t i = 0; i < declaredValue; i++)
 		{
 			varible newVarible = BaseValue::dupValue(var_type);
-			//fill from const pool
+			size_t position = totalLength + constPoolStart;
+			binaryApi.FillData(&position, newVarible);
+			/*size_t size = BaseValue::getTypeSize(newVarible->type_index);
+			totalLength += size;
+
+			auto length = newVarible->length + size;
+			uint8_t *buffer = new uint8_t[length];
+			for (size_t i = 0; i < length; i++)
+			{
+				if (i > newVarible->length)
+				{
+					buffer[i] = instance.bytecode[position + i];
+				}
+				else
+				{
+					buffer[i] = newVarible->data[i];
+				}
+			}
+
+			delete[] newVarible->data;
+			newVarible->data = buffer;*/
+
 			instance.typed_varibles.push_back(var_type);
 		}
 		////uint8_t type_byte = 
 
-		//auto position = totalLength + constPoolStart;
 		//if (instance.bytecode.size() < (position + length))
 		//{
 		//	DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(position + length) << ")";
@@ -62,7 +82,6 @@ void VMCore::Parse()
 		//{
 		//	buffer[i] = instance.bytecode[position + i];
 		//}
-		//totalLength += length;
 
 		//instance.meta.push_back(length);
 		//instance.varibles.push_back(buffer);
