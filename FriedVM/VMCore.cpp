@@ -167,6 +167,51 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		//instruction.execute(params, instruction.immediate, instruction.arg_size);
 	}
 }
+static varible Add(varible var1, varible var2)
+{
+	return BaseValue::ExecuteTyped(BaseValue::AddTypedFunctor(), var1, var2);
+}
+static varible Sub(varible var1, varible var2)
+{
+	return BaseValue::ExecuteTyped(BaseValue::SubTypedFunctor(), var1, var2);
+}
+static varible Mul(varible var1, varible var2)
+{
+	return BaseValue::ExecuteTyped(BaseValue::MulTypedFunctor(), var1, var2);
+}
+static varible Div(varible var1, varible var2)
+{
+	return BaseValue::ExecuteTyped(BaseValue::DivTypedFunctor(), var1, var2);
+}
+static varible Rnd(varible var1, varible var2)
+{
+	return BaseValue::ExecuteTyped(BaseValue::RndTypedFunctor(), var1, var2);
+}
+static uint64_t GetVarVLQ(varible var, uint64_t *offset)
+{
+	uint64_t value = 0;
+	uint8_t shift = 0;
+	uint8_t byte = 0;
+
+	do
+	{
+		if (var->length < (*offset + 1))
+		{
+			DIE << "file size was too small (" << NUM(var->length) << "), expected more bytes (" << NUM(*offset + 1) << ")";
+		}
+		byte = var->data[*offset++];
+		value |= (uint64_t)(byte & 0x7F) << shift; // Mask out MSB and shift
+		shift += 7;
+
+		if (shift >= 64) // Prevent overflow
+		{
+			DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
+		}
+
+	} while (byte & 0x80); // Continue if MSB is 1
+
+	return value;
+}
 bool VMCore::Peek_stack(uint32_t *pValue, int offset)
 {
 	if (instance.sp == 0)
@@ -480,7 +525,7 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 
 	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
 
-	//opcode_lookup[iMATH].execute = MAKE_EXECUTE(MATH);
+	opcode_lookup[iMATH].execute = MAKE_EXECUTE(typed_MATH);
 
 	//opcode_lookup[iAND].execute = MAKE_EXECUTE(AND);
 	//opcode_lookup[iOR].execute = MAKE_EXECUTE(OR);
@@ -553,6 +598,39 @@ void VMCore::typed_DUP(varible* params)
 
 	varible value = dup(instance.typed_stack.at(index));
 	typed_push(value);
+}
+void VMCore::typed_MATH(varible* params)
+{
+	varible val1 = 0, val2 = 0;
+
+	uint32_t math_mode = safe_cast<uint32_t>(params[0]);
+	//uint32_t math_mode = makeUint(params[0], immediate, arg_size);
+
+	// Initialize random engine with a device
+
+
+	if (math_mode != mmINC && math_mode != mmDEC)
+		val2 = typed_pop();
+	val1 = typed_pop();
+	//val1 = getUintVar(); // First operand
+	varible result = 0;
+	varible one = BaseValue::makeValue(vt_uint32_t, 1);
+
+	switch (math_mode) {
+	case mmADD: result = Add(val1, val2); break;
+	case mmSUB: result = Sub(val1, val2); break;
+	case mmINC: result = Add(val1, one); break;
+	case mmDEC: result = Sub(val1, one); break;
+	case mmMUL: result = Mul(val1, val2); break;
+	case mmDIV: result = Div(val1, val2); break;
+		//case mmPOW: result = pow(val1, val2); break;
+		//case mmROOT: result = pow(val1, 1.0 / val2); break;
+		//case mmSQRT: result = sqrt(val1); break;
+	case mmRAND: result = Rnd(val1, val2); break;
+	default:
+		DIE << "Math mode with index " << HEX(math_mode) << " does not exist!";
+	}
+	typed_push(result);
 }
 
 void VMCore::typed_EXIT(varible* params)
@@ -935,6 +1013,8 @@ void VMCore::SYS_READ()
 
 void VMCore::SYS_PRINT()
 {
+	varible var = typed_pop();
+
 	Value val = getVar();
 	print_raw(val);
 }
@@ -1110,6 +1190,12 @@ void VMCore::SYS_GET_CONSOLE_CURSOR()
 void VMCore::print_raw(Value val)
 {
 	print_raw(val.data, val.length);
+}
+void VMCore::print_raw(varible var)
+{
+	uint64_t offset = 0;
+	auto length = GetVarVLQ(var, &offset);
+	print_raw(var->data+offset, length);
 }
 void VMCore::print_raw(uint8_t* data, uint32_t length) {
 	for (uint32_t i = 0; i < length; ++i)

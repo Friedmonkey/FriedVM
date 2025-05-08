@@ -159,7 +159,7 @@ struct BaseValue
     template<typename T>
     static BaseValue* HandleTyped(const BaseValue& v1, const BaseValue& v2, std::function<T(T,T)> operation) {
         if (v1.type_index != v2.type_index) {
-            DIE << "Type mismatch in AddTyped";
+            DIE << "Type mismatch in HandleTyped";
         }
 
         // Ensure the size of T matches the type size of v1
@@ -262,4 +262,32 @@ struct BaseValue
                 });
         }
     };
+    static struct RndTypedFunctor {
+        mutable uint64_t seed = 0xDEADBABE12345678; // you can make it settable if u want :)
+
+        template <typename T>
+        BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
+            return BaseValue::HandleTyped<T>(*v1, *v2, [this](T a, T b) -> T {
+                if (a > b) std::swap(a, b);
+
+                // === custom LCG RNG ===
+                seed = seed * 6364136223846793005ULL + 1;
+                uint64_t randVal = (seed >> 16) & 0xFFFFFFFF;
+
+                if constexpr (std::is_integral_v<T>) {
+                    T range = b - a + 1;
+                    return a + (randVal % range);
+                }
+                else if constexpr (std::is_floating_point_v<T>) {
+                    double norm = static_cast<double>(randVal) / static_cast<double>(0xFFFFFFFF);
+                    return static_cast<T>(a + norm * (b - a));
+                }
+                else {
+                    DIE << "Unsupported type in RndTypedFunctor";
+                }
+                });
+        }
+    };
+
+
 };

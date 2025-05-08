@@ -48,6 +48,7 @@ private:
 	void typed_PUSH(varible* params);
 	void typed_POP(varible* params);
 	void typed_DUP(varible* params);
+	void typed_MATH(varible* params);
 	void typed_EXIT(varible* params);
 #pragma endregion
 #pragma region Instructions
@@ -116,6 +117,7 @@ private:
 #pragma endregion
 #pragma region Syscall_helpers
 	void print_raw(Value val);
+	void print_raw(varible var);
 	void print_raw(uint8_t* data, uint32_t length);
 	Value read_raw();
 #pragma endregion
