@@ -11,7 +11,8 @@ public:
 	void ParseMagic();
 	INSTRUCTION GetInstruction();
 	uint64_t VLQ();
-	uint32_t* GetParams(INSTRUCTION& instruction);
+	varible* GetParams(INSTRUCTION& instruction);
+	//uint32_t* GetParams(INSTRUCTION& instruction);
 	void FillData(size_t* position, varible varible);
 	uint64_t ParseEmptyVarCount();
 	varible ParseTypeByte(std::vector<uint8_t>& complex_buffer, bool canBeComplex = true);

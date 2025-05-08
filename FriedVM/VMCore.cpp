@@ -23,7 +23,7 @@ void VMCore::Parse()
 	binaryApi.ParseMagic();
 	//uint64_t emptyVarCount = binaryApi.ParseEmptyVarCount();
 	instance.instructionStart = binaryApi.ParseAddress();
-	uint64_t constPoolStart = binaryApi.ParseAddress();
+	instance.constPoolStart = binaryApi.ParseAddress();
 	uint64_t symbolsStart = 0;
 	if (instance.hasSymbols)
 	{
@@ -38,17 +38,21 @@ void VMCore::Parse()
 		auto declaredDefault = binaryApi.VLQ();
 		auto declaredValue = binaryApi.VLQ();
 
-		for (size_t i = 0; i < declaredDefault; i++)
+		if (declaredDefault > 0)
 		{
-			varible newVarible = BaseValue::dupValue(var_type);
-			BaseValue::FillDefaultValue(newVarible);
-			instance.typed_varibles.push_back(newVarible);
+			varible newDefaultVarible = BaseValue::dupValue(var_type);
+			BaseValue::FillDefaultValue(newDefaultVarible);
+
+			for (size_t i = 0; i < declaredDefault; i++)
+			{
+				varible newVarible = BaseValue::dupValue(newDefaultVarible);
+				instance.typed_varibles.push_back(newVarible);
+			}
 		}
 		for (size_t i = 0; i < declaredValue; i++)
 		{
 			varible newVarible = BaseValue::dupValue(var_type);
-			size_t position = totalLength + constPoolStart;
-			binaryApi.FillData(&position, newVarible);
+			binaryApi.FillData(&totalLength, newVarible);
 			/*size_t size = BaseValue::getTypeSize(newVarible->type_index);
 			totalLength += size;
 
@@ -69,7 +73,7 @@ void VMCore::Parse()
 			delete[] newVarible->data;
 			newVarible->data = buffer;*/
 
-			instance.typed_varibles.push_back(var_type);
+			instance.typed_varibles.push_back(newVarible);
 		}
 		////uint8_t type_byte = 
 
@@ -140,7 +144,7 @@ void VMCore::Parse()
 	if (instance.varibles.size() != instance.meta.size())
 		DIE << "varible size does not match meta size";
 
-	Run(instance.pc, constPoolStart);
+	Run(instance.pc, instance.constPoolStart);
 }
 void VMCore::Run(uint64_t start, uint64_t end)
 {
@@ -159,7 +163,8 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		ErrorLogMessage::current_instruction = instruction.op_name;
 
 		auto params = binaryApi.GetParams(instruction);
-		instruction.execute(params, instruction.immediate, instruction.arg_size);
+		instruction.execute(params);
+		//instruction.execute(params, instruction.immediate, instruction.arg_size);
 	}
 }
 bool VMCore::Peek_stack(uint32_t *pValue, int offset)
@@ -462,45 +467,48 @@ void VMCore::Return()
 	instance.pc = instance.call_stack.at(instance.call_stack.size()-1);
 	instance.call_stack.pop_back();
 }
-#define MAKE_EXECUTE(method) [this](uint32_t* params, bool immediate, uint8_t arg_size) { this->method(params, immediate, arg_size); }
+//#define MAKE_EXECUTE(method) [this](uint32_t* params, bool immediate, uint8_t arg_size) { this->method(params, immediate, arg_size); }
+#define MAKE_EXECUTE(method) [this](varible* params) { this->method(params); }
 #define MAKE_SYS_EXECUTE(method) [this]() { this->method(); }
 
 VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi(newInstance)
 {
 #pragma region Instructions
-	opcode_lookup[iPUSH].execute = MAKE_EXECUTE(PUSH);
-	opcode_lookup[iPOP].execute = MAKE_EXECUTE(POP);
-	opcode_lookup[iDUP].execute = MAKE_EXECUTE(DUP);
+	opcode_lookup[iPUSH].execute = MAKE_EXECUTE(typed_PUSH);
+	opcode_lookup[iPOP].execute = MAKE_EXECUTE(typed_POP);
+	opcode_lookup[iDUP].execute = MAKE_EXECUTE(typed_DUP);
 
-	opcode_lookup[iMATH].execute = MAKE_EXECUTE(MATH);
+	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
 
-	opcode_lookup[iAND].execute = MAKE_EXECUTE(AND);
-	opcode_lookup[iOR].execute = MAKE_EXECUTE(OR);
-	opcode_lookup[iNOT].execute = MAKE_EXECUTE(NOT);
+	//opcode_lookup[iMATH].execute = MAKE_EXECUTE(MATH);
 
-	opcode_lookup[iCOMP].execute = MAKE_EXECUTE(COMP);
+	//opcode_lookup[iAND].execute = MAKE_EXECUTE(AND);
+	//opcode_lookup[iOR].execute = MAKE_EXECUTE(OR);
+	//opcode_lookup[iNOT].execute = MAKE_EXECUTE(NOT);
 
-	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(JUMP);
-	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(JUMP_IF);
+	//opcode_lookup[iCOMP].execute = MAKE_EXECUTE(COMP);
 
-	opcode_lookup[iCALL].execute = MAKE_EXECUTE(CALL);
-	opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(CALL_IF);
-	opcode_lookup[iRET].execute = MAKE_EXECUTE(RET);
+	//opcode_lookup[iJUMP].execute = MAKE_EXECUTE(JUMP);
+	//opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(JUMP_IF);
 
-	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(SYSCALL);
-	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(EXIT);
+	//opcode_lookup[iCALL].execute = MAKE_EXECUTE(CALL);
+	//opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(CALL_IF);
+	//opcode_lookup[iRET].execute = MAKE_EXECUTE(RET);
+
+	//opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(SYSCALL);
+	//opcode_lookup[iEXIT].execute = MAKE_EXECUTE(EXIT);
 
 
-	opcode_lookup[iSET_BUFFER].execute = MAKE_EXECUTE(SET_BUFFER);
-	opcode_lookup[iGET_BUFFER].execute = MAKE_EXECUTE(GET_BUFFER);
-	opcode_lookup[iPUSH_BUFFER].execute = MAKE_EXECUTE(PUSH_BUFFER);
-	opcode_lookup[iBUFFER_UTIL].execute = MAKE_EXECUTE(BUFFER_UTIL);
-	opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(SET_VAR);
-	opcode_lookup[iSET_STRUCT].execute = MAKE_EXECUTE(SET_STRUCT);
-	opcode_lookup[iGET_STRUCT].execute = MAKE_EXECUTE(GET_STRUCT);
-	opcode_lookup[iCREATE_STRUCT].execute = MAKE_EXECUTE(CREATE_STRUCT);
+	//opcode_lookup[iSET_BUFFER].execute = MAKE_EXECUTE(SET_BUFFER);
+	//opcode_lookup[iGET_BUFFER].execute = MAKE_EXECUTE(GET_BUFFER);
+	//opcode_lookup[iPUSH_BUFFER].execute = MAKE_EXECUTE(PUSH_BUFFER);
+	//opcode_lookup[iBUFFER_UTIL].execute = MAKE_EXECUTE(BUFFER_UTIL);
+	//opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(SET_VAR);
+	//opcode_lookup[iSET_STRUCT].execute = MAKE_EXECUTE(SET_STRUCT);
+	//opcode_lookup[iGET_STRUCT].execute = MAKE_EXECUTE(GET_STRUCT);
+	//opcode_lookup[iCREATE_STRUCT].execute = MAKE_EXECUTE(CREATE_STRUCT);
 
-	opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(CHECK_STACK);
+	//opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(CHECK_STACK);
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));

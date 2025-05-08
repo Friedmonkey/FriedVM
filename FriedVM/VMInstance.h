@@ -54,6 +54,7 @@ public:
 	std::unordered_map<uint32_t, StructCache> structCache;
 
 	uint64_t instructionStart = 0;
+	uint64_t constPoolStart = 0;
 	uint8_t header_size = 8;
 	uint8_t meta_size = 4;
 	uint8_t emptyVar_size = 2;

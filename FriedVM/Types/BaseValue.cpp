@@ -37,15 +37,8 @@ void BaseValue::FillDefaultValue(BaseValue *value) {
     case vt_float_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 }; break;
     case vt_double_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; break;
     //case vt_pointer: return 4;
-    }
-
-    if (value->type_index == vt_string)
-    {
-        value->data = new uint8_t[0];
-    }
-    else
-    {
-        DIE << "unhandled type";
+    case vt_string: value->data = new uint8_t[0]; break;
+    default: DIE << "unhandled type"; break;
     }
 }
 

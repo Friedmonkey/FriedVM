@@ -58,14 +58,14 @@ INSTRUCTION FBinary::GetInstruction()
 	//uint8_t arg_size = ((hex &	0b00000110) >> 1) + 1; // second 2 bits are the size of the argument (1,2,3 or 4 bytes per argument, no 0)
 	//bool immediate = (hex &		0b00000001);      // the last bit is a flag to indicate if the value should be looked up in the const pool
 	uint8_t opcode =   (hex &	0b00011111);			// first 5 bits are the opcode shift the 0 so we get the actual value
-	uint8_t arg_size = ((hex &	0b01100000) >> 5) + 1;	// second 2 bits are the size of the argument (1,2,3 or 4 bytes per argument, no 0)
-	bool isAddr =   (hex &	0b10000000) >> 7;		// the last bit is a flag to indicate if the value should be looked up in the const pool
+	//uint8_t arg_size = ((hex &	0b01100000) >> 5) + 1;	// second 2 bits are the size of the argument (1,2,3 or 4 bytes per argument, no 0)
+	///bool isAddr =   (hex &	0b10000000) >> 7;		// the last bit is a flag to indicate if the value should be looked up in the const pool
 	if (opcode_lookup.size() >= opcode)
 	{
 		instance.pc++;
 		INSTRUCTION instruction = opcode_lookup.at(opcode);
-		instruction.arg_size = arg_size;
-		instruction.immediate = !isAddr;
+		//instruction.arg_size = arg_size;
+		//instruction.immediate = !isAddr;
 		return instruction;
 	}
 	else
@@ -97,8 +97,7 @@ uint64_t FBinary::VLQ()
 	return value;
 }
 
-
-uint32_t* FBinary::GetParams(INSTRUCTION &instruction)
+varible* FBinary::GetParams(INSTRUCTION& instruction)
 {
 	if (instruction.paramCount > maxParamCount)
 	{
@@ -106,18 +105,38 @@ uint32_t* FBinary::GetParams(INSTRUCTION &instruction)
 		return NULL;
 	}
 
-	uint32_t *params = new uint32_t[instruction.paramCount];
+	varible* params = new varible[instruction.paramCount];
 	for (int i = 0; i < instruction.paramCount; i++)
 	{
-		auto bytes = ReadBytes(instruction.arg_size);
-		params[i] = CastToUint32(bytes, instruction.arg_size);
+		params[i] = instance.typed_varibles.at(VLQ());
+		//auto bytes = ReadBytes(instruction.arg_size);
+		//params[i] = CastToUint32(bytes, instruction.arg_size);
+		// = (uint32_t)VLQ();
 	}
 
 	return params;
 }
+//uint32_t* FBinary::GetParams(INSTRUCTION &instruction)
+//{
+//	if (instruction.paramCount > maxParamCount)
+//	{
+//		DIE << "Amount of paramters requested exeeds the max amount of parameters defined!";
+//		return NULL;
+//	}
+//
+//	uint32_t *params = new uint32_t[instruction.paramCount];
+//	for (int i = 0; i < instruction.paramCount; i++)
+//	{
+//		//auto bytes = ReadBytes(instruction.arg_size);
+//		//params[i] = CastToUint32(bytes, instruction.arg_size);
+//		params[i] = (uint32_t)VLQ();
+//	}
+//
+//	return params;
+//}
 void FBinary::FillData(size_t *position, varible varible)
 {
-	size_t pos = *position;
+	size_t pos = (*position) + instance.constPoolStart;
 	if (IsComplexType(varible->type_index))
 	{
 		size_t post_type_size = 0;//BaseValue::getTypeSize(varible->type_index);
@@ -135,6 +154,8 @@ void FBinary::FillData(size_t *position, varible varible)
 		{
 			buffer[i] = instance.bytecode[pos + i];
 		}
+		*position += size;
+
 
 		if (!isCorrectSize)
 		{	//we need to swap te buffers
