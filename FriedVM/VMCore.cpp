@@ -103,42 +103,67 @@ void VMCore::Parse()
 	{
 		totalLength = symbolsStart;
 		std::vector<uint8_t> symbol_buffer;
+		uint32_t skipped = 0;
 		while (totalLength < instance.bytecode.size())
 		{
 			symbol_buffer.clear();
-			uint8_t length = 0;
-			while(totalLength+length < instance.bytecode.size())
+
+			while (totalLength < instance.bytecode.size())
 			{
-				uint8_t &byte = instance.bytecode.at(totalLength+length);
+				uint8_t byte = instance.bytecode.at(totalLength);
 				bool isNumber = byte >= 0x30 && byte <= 0x39;
 				bool isUppercase = byte >= 0x41 && byte <= 0x5A;
 				bool isLowercase = byte >= 0x61 && byte <= 0x7A;
 				bool isUnderScore = byte == 0x5F;
 
+				// handle special case for underscore at start
+				if (symbol_buffer.empty() && isUnderScore && instance.compact)
+				{
+					totalLength++; //skip the underscore
+					uint64_t amount = binaryApi.offsetted_VLQ(&totalLength);
+					for (size_t i = 0; i < amount; i++)
+					{
+						std::string str = "_" + std::to_string(skipped);
+						uint8_t* buffer = new uint8_t[str.size()];
+						std::memcpy(buffer, str.data(), str.size());
+
+						instance.symbols.push_back(buffer);
+						instance.symbols_length.push_back(str.size());
+						skipped++;
+					}
+					if (instance.bytecode.at(totalLength) != symbolSplitCar)
+						DIE << "Expected an ending character after a compact symbol at program index " << HEX(totalLength);
+					
+					totalLength++; //skip splitChar
+					continue;
+				}
+
 				if (isNumber || isUppercase || isLowercase || isUnderScore)
 				{
 					symbol_buffer.push_back(byte);
-					length++;
+					totalLength++;
 				}
 				else if (byte == symbolSplitCar)
 				{
-					uint8_t* buffer = new uint8_t[length];
-					for (size_t i = 0; i < length; i++)
-					{
-						buffer[i] = instance.bytecode[totalLength + i];
-					}
-					totalLength += length;
-					totalLength++; //split char
+					totalLength++; // consume the split char
+
+					uint8_t* buffer = new uint8_t[symbol_buffer.size()];
+					std::memcpy(buffer, symbol_buffer.data(), symbol_buffer.size());
+
 					instance.symbols.push_back(buffer);
-					instance.symbols_length.push_back(length);
-					break;
+					instance.symbols_length.push_back(symbol_buffer.size());
+
+					break; // done with this symbol
 				}
 				else
 				{
-					DIE << "The symbol at position " << NUM(totalLength) << " has inncorrect char (" << byte << ") at index " << NUM(length);
+					DIE << "The symbol at position " << NUM(totalLength)
+						<< " has incorrect char (" << byte << ") at symbol index "
+						<< NUM(symbol_buffer.size());
 				}
 			}
 		}
+
 	}
 #pragma endregion
 	if (instance.symbols.size() != instance.symbols_length.size())
@@ -1074,7 +1099,6 @@ void VMCore::SYS_DUMP()
 	varible symbol = new BaseValue(data->type_index, data->data, std::min(data->length, (size_t)4));
 	if (instance.hasSymbols && data->rest != 0) //no symbol
 	{	//if there is a label availible
-		delete[] symbol->data;
 		symbol->type_index = vt_string;
 		symbol->data = instance.symbols.at(data->rest - 1);
 		symbol->length = instance.symbols_length.at(data->rest - 1);

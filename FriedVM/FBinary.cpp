@@ -23,12 +23,14 @@ void FBinary::ParseMagic()
 			//uint8_t header_size = size_map[(info_byte & 0b11000000) >> 6];
 			//uint8_t meta_size = size_map[(info_byte &   0b00110000) >> 4];
 			//uint8_t emptyVar_size = size_map[(info_byte&0b00001100) >> 2];
+			bool compact = (info_byte & 0b01000000) >> 6;
 			bool hasSymbols = (info_byte & 0b10000000) >> 7;
-			uint8_t version = (info_byte & 0b01111111);
+			uint8_t version = (info_byte & 0b00111111);
 
 			//instance.header_size = header_size;
 			//instance.meta_size = meta_size;
 			//instance.emptyVar_size = emptyVar_size;
+			instance.compact = compact;
 			instance.hasSymbols = hasSymbols;
 			instance.version = version;
 		}
@@ -142,12 +144,7 @@ uint64_t FBinary::offsetted_VLQ(uint64_t* offset)
 
 	do
 	{
-		if (instance.bytecode.size() < (*offset + 1))
-		{
-			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(*offset + 1) << ")";
-		}
-		byte = instance.bytecode[*offset];
-		*offset = *offset + 1;
+		byte = GetByte(offset);
 		value |= (uint64_t)(byte & 0x7F) << shift; // Mask out MSB and shift
 		shift += 7;
 
@@ -185,42 +182,40 @@ uint64_t FBinary::offsetted_VLQ(uint64_t* offset)
 //
 //	return value;
 //}
-void FBinary::getVaribleTypeSize(uint64_t* position, varible varible, uint8_t pad)
+void FBinary::getVaribleTypeSize(uint64_t* position, varible varible)
 {
-	uint8_t byte = 0;
+	uint64_t value = offsetted_VLQ(position);
+	delete varible->data;
+	varible->data = CastFromUint64(value, varible->length);
+	//uint8_t byte = 0;
 
-	//varible->length = size;
-	uint8_t* buffer = varible->data;
-	auto size = varible->length;
+	////varible->length = size;
+	//uint8_t* buffer = varible->data;
+	//auto size = varible->length;
 
-	size_t i = 0;
-	do
-	{
-		if (instance.bytecode.size() < (*position + 1))
-		{
-			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(*position + 1) << ")";
-		}
-		byte = instance.bytecode[*position];
-		*position = *position + 1;
-		buffer[i] = byte & 0x7F;
-		i++;
+	//size_t i = 0;
+	//do
+	//{
+	//	byte = GetByte(position);
+	//	buffer[i] = byte & 0x7F;
+	//	i++;
 
-		if (i >= size) // Prevent overflow
-		{
-			DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
-		}
+	//	if (i >= size) // Prevent overflow
+	//	{
+	//		DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
+	//	}
 
-	} while (byte & 0x80); // Continue if MSB is 1
+	//} while (byte & 0x80); // Continue if MSB is 1
 
-	//pad the ramaining with 0
-	for (; i < size; i++)
-	{
-		buffer[i] = pad;
-		*position += 1;
-	}
+	////pad the ramaining with 0
+	//for (; i < size; i++)
+	//{
+	//	buffer[i] = pad;
+	//	*position += 1;
+	//}
 
-	//delete[] varible->data;
-	//varible->data = buffer;
+	////delete[] varible->data;
+	////varible->data = buffer;
 }
 uint64_t FBinary::getComplexTypeSize(ValueType type, uint64_t *position) {
 	switch (type) {
@@ -236,7 +231,7 @@ void FBinary::FillData(uint64_t *position, varible varible)
 	//size_t pos = (*position) + ;
 	if (varible->type_index == vt_label)
 	{
-		getVaribleTypeSize(position, varible, 0);
+		getVaribleTypeSize(position, varible);
 	}
 	else if (IsComplexType(varible->type_index))
 	{
@@ -411,6 +406,18 @@ uint32_t FBinary::CastToUint32(const uint8_t* byteArray, size_t count)
 
 	return result;
 }
+uint8_t* FBinary::CastFromUint64(const uint64_t uint64, size_t count)
+{
+	uint8_t* buffer = new uint8_t[count];  // Allocate memory for the byte array
+
+	for (size_t i = 0; i < count; ++i)
+	{
+		// Extract each byte by shifting and masking
+		buffer[i] = static_cast<uint8_t>((uint64 >> (8 * i)) & 0xFF); // Shift and mask to get the byte
+	}
+
+	return buffer;
+}
 uint64_t FBinary::CastToUint64(const uint8_t* byteArray, size_t count)
 {
 	uint64_t result = 0;
@@ -423,6 +430,16 @@ uint64_t FBinary::CastToUint64(const uint8_t* byteArray, size_t count)
 	return result;
 }
 
+uint8_t FBinary::GetByte(uint64_t *position)
+{
+	if (instance.bytecode.size() < (*position + 1))
+	{
+		DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(*position + 1) << ")";
+	}
+	uint8_t byte = instance.bytecode[*position];
+	*position = *position + 1;
+	return byte;
+}
 uint8_t FBinary::GetByte()
 {
 	if (instance.bytecode.size() < (instance.pc + 1))

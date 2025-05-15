@@ -61,6 +61,7 @@ public:
 	uint8_t emptyVar_size = 2;
 	uint8_t version = 1;
 
+	bool compact;
 	bool hasSymbols;
 	std::vector<uint8_t> symbols_length;
 	std::vector<uint8_t*> symbols;
