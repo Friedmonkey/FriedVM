@@ -45,6 +45,7 @@ public:
 	uint32_t declare_size = 0;
 
 
+	uint64_t ProgramIndex = 0;
 	std::vector<varible> typed_stack;
 	std::vector<varible> typed_varibles;
 

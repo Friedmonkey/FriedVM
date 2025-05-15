@@ -27,6 +27,19 @@ public:
 	//void (*execute)(uint8_t params[]);
 };
 
+struct Statement
+{
+public:
+	Statement(const INSTRUCTION& instruction, varible* parameters)
+		: Instruction(instruction), params(parameters)
+	{
+	}
+
+	INSTRUCTION Instruction;
+	varible* params;
+};
+
+
 #define iPUSH		0x00
 #define iPOP		0x01
 #define iDUP		0x02

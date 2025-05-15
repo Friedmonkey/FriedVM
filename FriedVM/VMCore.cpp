@@ -148,6 +148,7 @@ void VMCore::Parse()
 }
 void VMCore::Run(uint64_t start, uint64_t end)
 {
+	std::vector<Statement> Statements;
 	instance.pc = start;
 	while (instance.pc < end) //instructions section
 	{
@@ -163,8 +164,19 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		ErrorLogMessage::current_instruction = instruction.op_name;
 
 		auto params = binaryApi.GetParams(instruction);
-		instruction.execute(params);
-		//instruction.execute(params, instruction.immediate, instruction.arg_size);
+		
+		Statements.push_back(Statement(instruction, params));
+	}
+
+
+	instance.ProgramIndex = -1;
+	while (instance.ProgramIndex < Statements.size())
+	{
+		instance.ProgramIndex++;
+		//do bounds check or something
+		auto& statement = Statements[instance.ProgramIndex];
+
+		statement.Instruction.execute(statement.params);
 	}
 }
 static varible Add(varible var1, varible var2)
