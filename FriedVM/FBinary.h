@@ -12,8 +12,10 @@ public:
 	INSTRUCTION GetInstruction();
 	uint64_t VLQ();
 	varible* GetParams(INSTRUCTION& instruction);
+	uint64_t offsetted_VLQ(uint64_t* offset);
+	uint64_t getComplexTypeSize(ValueType type, uint64_t* position);
 	//uint32_t* GetParams(INSTRUCTION& instruction);
-	void FillData(size_t* position, varible varible);
+	void FillData(uint64_t* position, varible varible);
 	uint64_t ParseEmptyVarCount();
 	varible ParseTypeByte(std::vector<uint8_t>& complex_buffer, bool canBeComplex = true);
 	bool IsComplexType(ValueType vt);

@@ -134,14 +134,85 @@ varible* FBinary::GetParams(INSTRUCTION& instruction)
 //
 //	return params;
 //}
-void FBinary::FillData(size_t *position, varible varible)
+uint64_t FBinary::offsetted_VLQ(uint64_t* offset)
 {
-	size_t pos = (*position) + instance.constPoolStart;
+	uint64_t value = 0;
+	uint8_t shift = 0;
+	uint8_t byte = 0;
+
+	do
+	{
+		if (instance.bytecode.size() < (*offset + 1))
+		{
+			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(*offset + 1) << ")";
+		}
+		byte = instance.bytecode[*offset];
+		*offset = *offset + 1;
+		value |= (uint64_t)(byte & 0x7F) << shift; // Mask out MSB and shift
+		shift += 7;
+
+		if (shift >= 64) // Prevent overflow
+		{
+			DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
+		}
+
+	} while (byte & 0x80); // Continue if MSB is 1
+
+	return value;
+}
+//uint64_t FBinary::offsetted_VLQ(ValueType type) 
+//{
+//	for (size_t i = 0; i < size; i++)
+//	{
+//		buffer[i] = instance.bytecode[pos + i];
+//	}
+//	uint64_t value = 0;
+//	uint8_t shift = 0;
+//	uint8_t byte = 0;
+//
+//	do
+//	{
+//		byte = GetByte();
+//		value |= (uint64_t)(byte & 0x7F) << shift; // Mask out MSB and shift
+//		shift += 7;
+//
+//		if (shift >= 64) // Prevent overflow
+//		{
+//			DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
+//		}
+//
+//	} while (byte & 0x80); // Continue if MSB is 1
+//
+//	return value;
+//}
+uint64_t FBinary::getComplexTypeSize(ValueType type, uint64_t *position) {
+	switch (type) {
+	case vt_raw: return offsetted_VLQ(position);
+	case vt_string: return offsetted_VLQ(position);
+
+	case vt_array: return 0;
+	default: DIE << "complex type size is either not handled yet or not supported for type " << HEX(type);
+	}
+}
+void FBinary::FillData(uint64_t *position, varible varible)
+{
+	//size_t pos = (*position) + ;
 	if (IsComplexType(varible->type_index))
 	{
-		size_t post_type_size = 0;//BaseValue::getTypeSize(varible->type_index);
-		size_t size = varible->length + post_type_size;
+		uint64_t size = getComplexTypeSize(varible->type_index, position);
+		varible->length = size;
+		//size_t post_type_size = 0;//BaseValue::getTypeSize(varible->type_index);
+		//size_t size = varible->length + post_type_size;
 		uint8_t* buffer = new uint8_t[size];
+
+		for (size_t i = 0; i < size; i++)
+		{
+			buffer[i] = instance.bytecode[*position + i];
+		}
+		*position += size;
+
+		delete[] varible->data;
+		varible->data = buffer;
 	}
 	else
 	{
@@ -152,7 +223,7 @@ void FBinary::FillData(size_t *position, varible varible)
 
 		for (size_t i = 0; i < size; i++)
 		{
-			buffer[i] = instance.bytecode[pos + i];
+			buffer[i] = instance.bytecode[*position + i];
 		}
 		*position += size;
 

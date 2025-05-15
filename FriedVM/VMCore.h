@@ -49,6 +49,7 @@ private:
 	void typed_POP(varible* params);
 	void typed_DUP(varible* params);
 	void typed_MATH(varible* params);
+	void typed_SYSCALL(varible* params);
 	void typed_EXIT(varible* params);
 #pragma endregion
 #pragma region Instructions

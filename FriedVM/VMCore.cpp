@@ -29,7 +29,7 @@ void VMCore::Parse()
 	{
 		symbolsStart = binaryApi.ParseAddress();
 	}
-	uint64_t totalLength = 0;
+	uint64_t totalLength = instance.constPoolStart;
 #pragma region Declares & Symbols
 	std::vector<uint8_t> complex_buffer;
 	while(instance.pc < instance.instructionStart) //declare section
@@ -37,7 +37,6 @@ void VMCore::Parse()
 		varible var_type = binaryApi.ParseTypeByte(complex_buffer);
 		auto declaredDefault = binaryApi.VLQ();
 		auto declaredValue = binaryApi.VLQ();
-
 		if (declaredDefault > 0)
 		{
 			varible newDefaultVarible = BaseValue::dupValue(var_type);
@@ -48,6 +47,7 @@ void VMCore::Parse()
 				varible newVarible = BaseValue::dupValue(newDefaultVarible);
 				instance.typed_varibles.push_back(newVarible);
 			}
+			//delete newDefaultVarible;
 		}
 		for (size_t i = 0; i < declaredValue; i++)
 		{
@@ -540,8 +540,8 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	//opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(CALL_IF);
 	//opcode_lookup[iRET].execute = MAKE_EXECUTE(RET);
 
-	//opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(SYSCALL);
-	//opcode_lookup[iEXIT].execute = MAKE_EXECUTE(EXIT);
+	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(typed_SYSCALL);
+	//opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
 
 
 	//opcode_lookup[iSET_BUFFER].execute = MAKE_EXECUTE(SET_BUFFER);
@@ -631,6 +631,12 @@ void VMCore::typed_MATH(varible* params)
 		DIE << "Math mode with index " << HEX(math_mode) << " does not exist!";
 	}
 	typed_push(result);
+}
+
+void VMCore::typed_SYSCALL(varible* params)
+{
+	uint32_t idx = safe_cast<uint32_t>(params[0]);
+	syscall(idx);
 }
 
 void VMCore::typed_EXIT(varible* params)
@@ -991,7 +997,6 @@ void VMCore::CHECK_STACK(uint32_t* params, bool immediate, uint8_t arg_size)
 //}
 
 #pragma endregion
-
 #pragma region Syscalls
 void VMCore::SYS_PAUSE()
 {
@@ -1015,8 +1020,8 @@ void VMCore::SYS_PRINT()
 {
 	varible var = typed_pop();
 
-	Value val = getVar();
-	print_raw(val);
+	//Value val = getVar();
+	print_raw(var);
 }
 void VMCore::SYS_DUMP()
 {
@@ -1193,9 +1198,9 @@ void VMCore::print_raw(Value val)
 }
 void VMCore::print_raw(varible var)
 {
-	uint64_t offset = 0;
-	auto length = GetVarVLQ(var, &offset);
-	print_raw(var->data+offset, length);
+	//uint64_t offset = 0;
+	//auto length = GetVarVLQ(var, &offset);
+	print_raw(var->data/*+offset*/, var->length);
 }
 void VMCore::print_raw(uint8_t* data, uint32_t length) {
 	for (uint32_t i = 0; i < length; ++i)
