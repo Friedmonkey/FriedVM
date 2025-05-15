@@ -20,20 +20,14 @@ struct BaseValue
         };
     };
 
-    // Constructor to initialize the BaseValue
-    BaseValue(ValueType t, size_t len, uint8_t meta = 0) : type_index(t), length(len), metadata(meta) {
-        //type_index = t;  // Initialize the type
-        data = new uint8_t[length](); // Allocate memory for the data
-        //metadata = 0;
-        //isArray = false;  // Default is not an array
+    BaseValue(ValueType t, uint8_t *newData, size_t len, uint8_t meta = 0) : type_index(t), length(len), metadata(meta) {
+        data = newData;
     }
 
-    //// Constructor to initialize the BaseValue
-    //BaseValue(ValueType t, size_t len) : type{ 0 }, length(len) {
-    //    type_index = t;  // Initialize the type
-    //    data = new uint8_t[length * getTypeSize(t)]; // Allocate memory for the data
-    //    isArray = false;  // Default is not an array
-    //}
+    // Constructor to initialize the BaseValue
+    BaseValue(ValueType t, size_t len, uint8_t meta = 0) : type_index(t), length(len), metadata(meta) {
+        data = new uint8_t[length](); // Allocate memory for the data
+    }
 
     // Destructor to free the allocated memory
     ~BaseValue() {
@@ -184,6 +178,18 @@ struct BaseValue
         //return resultVal;
     }
 
+    template<typename T>
+    static void HandleSingleTyped(BaseValue *result, const BaseValue& v1, std::function<void(T, BaseValue*)> operation) {
+        if (sizeof(T) != getTypeSize(v1.type_index)) {
+            DIE << "Size mismatch between T and BaseValue type";
+        }
+        T* data1 = reinterpret_cast<T*>(v1.data);
+
+        operation(*data1, result);
+
+        //return makeValue<T>(v1.type_index, result);
+    }
+
     //template<typename T>
     //static BaseValue AddTyped(const BaseValue& v1, const BaseValue& v2)
     //{
@@ -191,6 +197,58 @@ struct BaseValue
     //        return a + b;
     //    });
     //}
+    static struct ToStringTypedFunctor {
+        template <typename T>
+        void operator()(const BaseValue* v1, BaseValue* outsideResult) const {
+            HandleSingleTyped<T>(outsideResult, *v1, [](T var, BaseValue* result) {
+                std::ostringstream oss;
+                oss << var;
+                std::string str = oss.str();
+
+                result->length= str.length();
+                result->data = new uint8_t[result->length]; // or malloc if you want C-style
+                std::memcpy(result->data, str.data(), result->length);
+            });
+        }
+    };
+
+    static BaseValue* ToString(const BaseValue* var1) 
+    {
+        BaseValue* result = new BaseValue(vt_string, 0);
+        BaseValue::ExecuteSingleTypedTemplate(BaseValue::ToStringTypedFunctor(), var1, result);
+        return result;
+    }
+
+    template <typename Func>
+    static BaseValue* ExecuteSingleTypedTemplate(Func func, const BaseValue* v1, BaseValue *result) {
+        if (!v1) {
+            DIE << "Null pointer passed to ExecuteSingleTypedTemplate";
+            //return nullptr;
+        }
+        //if (v1.type_index != v2.type_index || v1.length != v2.length) {
+        //    // Cast v2 to the same type as v1
+        //    BaseValue casted = v2.Cast(v1.type_index);
+        //    return Add(v1, casted);  // Now they are both of the same type
+        //}
+
+        // Dispatch based on type
+        switch (v1->type_index) {
+        case vt_uint8_t:   func.template operator()<uint8_t>(v1, result); break;
+        case vt_uint16_t:  func.template operator()<uint16_t>(v1, result); break;
+        case vt_uint32_t:  func.template operator()<uint32_t>(v1, result); break;
+        case vt_uint64_t:  func.template operator()<uint64_t>(v1, result); break;
+        case vt_int8_t:    func.template operator()<int8_t>(v1, result); break;
+        case vt_int16_t:   func.template operator()<int16_t>(v1, result); break;
+        case vt_int32_t:   func.template operator()<int32_t>(v1, result); break;
+        case vt_int64_t:   func.template operator()<int64_t>(v1, result); break;
+        case vt_float_t:   func.template operator()<float>(v1, result); break;
+        case vt_double_t:  func.template operator()<double>(v1, result); break;
+        default:
+            DIE << "Unsupported type in ExecuteTyped";
+        }
+
+        return result;
+    }
 
     //BaseValue ExecuteTyped(Func func, const BaseValue& v1, const BaseValue& v2);
     template <typename Func>

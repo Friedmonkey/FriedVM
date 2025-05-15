@@ -13,6 +13,7 @@ public:
 	uint64_t VLQ();
 	varible* GetParams(INSTRUCTION& instruction);
 	uint64_t offsetted_VLQ(uint64_t* offset);
+	void getVaribleTypeSize(uint64_t* position, varible varible, uint8_t pad);
 	uint64_t getComplexTypeSize(ValueType type, uint64_t* position);
 	//uint32_t* GetParams(INSTRUCTION& instruction);
 	void FillData(uint64_t* position, varible varible);

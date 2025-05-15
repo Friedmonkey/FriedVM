@@ -18,6 +18,7 @@ size_t BaseValue::getTypeSize(ValueType type) {
     case vt_double_t: return sizeof(double);
 
     case vt_pointer: return 4;
+    case vt_label: return sizeof(uint64_t);
     case vt_array: return 0;
     default: DIE << "unhandled type";
     }

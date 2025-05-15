@@ -23,7 +23,7 @@ public:
 	//uint8_t arg_size; // Argument size (0–3)
 	//bool immediate;   // Immediate flag
 	//std::function<void(uint32_t* params, bool immediate, uint8_t arg_size)> execute;
-	std::function<void(varible *params)> execute;
+	std::function<bool(varible *params)> execute;
 	//void (*execute)(uint8_t params[]);
 };
 

@@ -185,6 +185,43 @@ uint64_t FBinary::offsetted_VLQ(uint64_t* offset)
 //
 //	return value;
 //}
+void FBinary::getVaribleTypeSize(uint64_t* position, varible varible, uint8_t pad)
+{
+	uint8_t byte = 0;
+
+	//varible->length = size;
+	uint8_t* buffer = varible->data;
+	auto size = varible->length;
+
+	size_t i = 0;
+	do
+	{
+		if (instance.bytecode.size() < (*position + 1))
+		{
+			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(*position + 1) << ")";
+		}
+		byte = instance.bytecode[*position];
+		*position = *position + 1;
+		buffer[i] = byte & 0x7F;
+		i++;
+
+		if (i >= size) // Prevent overflow
+		{
+			DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
+		}
+
+	} while (byte & 0x80); // Continue if MSB is 1
+
+	//pad the ramaining with 0
+	for (; i < size; i++)
+	{
+		buffer[i] = pad;
+		*position += 1;
+	}
+
+	//delete[] varible->data;
+	//varible->data = buffer;
+}
 uint64_t FBinary::getComplexTypeSize(ValueType type, uint64_t *position) {
 	switch (type) {
 	case vt_raw: return offsetted_VLQ(position);
@@ -197,7 +234,11 @@ uint64_t FBinary::getComplexTypeSize(ValueType type, uint64_t *position) {
 void FBinary::FillData(uint64_t *position, varible varible)
 {
 	//size_t pos = (*position) + ;
-	if (IsComplexType(varible->type_index))
+	if (varible->type_index == vt_label)
+	{
+		getVaribleTypeSize(position, varible, 0);
+	}
+	else if (IsComplexType(varible->type_index))
 	{
 		uint64_t size = getComplexTypeSize(varible->type_index, position);
 		varible->length = size;

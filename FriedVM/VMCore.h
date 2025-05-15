@@ -41,16 +41,18 @@ private:
 	uint32_t getUintVar();
 	Value getVar();
 	void setVar(Value reference, Value newValue);
+	void Jump(varible offset);
 	void Jump(uint32_t offset, bool immidiate);
 	void Call(uint32_t offset, bool immidiate);
 	void Return();
 #pragma region typed_Instructions
-	void typed_PUSH(varible* params);
-	void typed_POP(varible* params);
-	void typed_DUP(varible* params);
-	void typed_MATH(varible* params);
-	void typed_SYSCALL(varible* params);
-	void typed_EXIT(varible* params);
+	bool typed_PUSH(varible* params);
+	bool typed_POP(varible* params);
+	bool typed_DUP(varible* params);
+	bool typed_MATH(varible* params);
+	bool typed_JUMP(varible* params);
+	bool typed_SYSCALL(varible* params);
+	bool typed_EXIT(varible* params);
 #pragma endregion
 #pragma region Instructions
 	void PUSH(uint32_t* params, bool immediate, uint8_t arg_size);

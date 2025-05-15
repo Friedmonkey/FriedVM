@@ -46,8 +46,9 @@ void VMCore::Parse()
 			{
 				varible newVarible = BaseValue::dupValue(newDefaultVarible);
 				instance.typed_varibles.push_back(newVarible);
+				newVarible->rest = instance.typed_varibles.size();
 			}
-			//delete newDefaultVarible;
+			delete newDefaultVarible;
 		}
 		for (size_t i = 0; i < declaredValue; i++)
 		{
@@ -72,9 +73,10 @@ void VMCore::Parse()
 
 			delete[] newVarible->data;
 			newVarible->data = buffer;*/
-
 			instance.typed_varibles.push_back(newVarible);
+			newVarible->rest = instance.typed_varibles.size();
 		}
+		delete var_type;
 		////uint8_t type_byte = 
 
 		//if (instance.bytecode.size() < (position + length))
@@ -166,6 +168,17 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		auto params = binaryApi.GetParams(instruction);
 		
 		Statements.push_back(Statement(instruction, params));
+	}
+
+
+	while (instance.ProgramIndex < Statements.size())
+	{
+		auto& statement = Statements[instance.ProgramIndex];
+
+		bool advanceProgramIndex = statement.Instruction.execute(statement.params);
+
+		if (advanceProgramIndex)
+			instance.ProgramIndex++;
 	}
 
 
@@ -270,7 +283,7 @@ varible VMCore::typed_pop()
 {
 	if (instance.sp == 0)
 	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to pop! At program index " << NUM(instance.ProgramIndex);
 	}
 	instance.sp--;
 	varible value = instance.typed_stack.at(instance.sp);
@@ -301,7 +314,7 @@ uint32_t VMCore::pop()
 {
 	if (instance.sp == 0)
 	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to pop! At program index " << NUM(instance.ProgramIndex);
 	}
 	instance.sp--;
 	uint32_t value = instance.stack.at(instance.sp);
@@ -318,7 +331,7 @@ void VMCore::push(uint32_t value, bool immediate, uint8_t arg_size)
 uint32_t VMCore::buffer_pop()
 {
 	if (instance.varible_buffer.size() == 0)
-		DIE << "Nothing on the buffer to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the buffer to pop! At program index " << NUM(instance.ProgramIndex);
 
 	uint32_t val = instance.varible_buffer.at(instance.varible_buffer.size()-1);
 	instance.varible_buffer.pop_back();
@@ -466,7 +479,7 @@ uint32_t VMCore::getUintVar()
 	bool success = getStackType(&immediate, &arg_size);
 	if (!success)
 	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to pop! At program index " << NUM(instance.ProgramIndex);
 	}
 
 	uint32_t value = pop();
@@ -480,7 +493,7 @@ Value VMCore::getVar()
 	bool success = getStackType(&immediate, &arg_size);
 	if (!success)
 	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to pop! At program index " << NUM(instance.ProgramIndex);
 	}
 
 	uint32_t value = pop();
@@ -504,28 +517,36 @@ void VMCore::setVar(Value reference, Value newValue) {
 	instance.meta[index] = newValue.length;
 }
 
+void VMCore::Jump(varible offset)
+{
+	if (offset->type_index != vt_label)
+		DIE << "Jump expected a label but got type " << HEX(offset->type_index) << " instead";
+
+	uint64_t idx = safe_cast<uint64_t>(offset);
+	instance.ProgramIndex = idx;
+}
 void VMCore::Jump(uint32_t offset, bool immidiate)
 {
 	//if (immediate)
 	//	instance.pc += params[0];
 	//else
-		instance.pc = instance.instructionStart + offset;
+		instance.ProgramIndex = offset;// instance.instructionStart + offset;
 }
 void VMCore::Call(uint32_t offset, bool immidiate)
 {
-	instance.call_stack.push_back(instance.pc); //keep track of where we are now
-	instance.pc = instance.instructionStart + offset;
+	instance.call_stack.push_back(instance.ProgramIndex); //keep track of where we are now
+	instance.ProgramIndex = offset;
 }
 void VMCore::Return()
 {
 	if (instance.call_stack.size() == 0)
-		DIE << "Call stack was empty when trying to return At program index " << HEX(instance.pc);
+		DIE << "Call stack was empty when trying to return At program index " << NUM(instance.ProgramIndex);
 
-	instance.pc = instance.call_stack.at(instance.call_stack.size()-1);
+	instance.ProgramIndex = instance.call_stack.at(instance.call_stack.size()-1);
 	instance.call_stack.pop_back();
 }
 //#define MAKE_EXECUTE(method) [this](uint32_t* params, bool immediate, uint8_t arg_size) { this->method(params, immediate, arg_size); }
-#define MAKE_EXECUTE(method) [this](varible* params) { this->method(params); }
+#define MAKE_EXECUTE(method) [this](varible* params) { return this->method(params); }
 #define MAKE_SYS_EXECUTE(method) [this]() { this->method(); }
 
 VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi(newInstance)
@@ -535,8 +556,6 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iPOP].execute = MAKE_EXECUTE(typed_POP);
 	opcode_lookup[iDUP].execute = MAKE_EXECUTE(typed_DUP);
 
-	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
-
 	opcode_lookup[iMATH].execute = MAKE_EXECUTE(typed_MATH);
 
 	//opcode_lookup[iAND].execute = MAKE_EXECUTE(AND);
@@ -545,7 +564,7 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 
 	//opcode_lookup[iCOMP].execute = MAKE_EXECUTE(COMP);
 
-	//opcode_lookup[iJUMP].execute = MAKE_EXECUTE(JUMP);
+	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(typed_JUMP);
 	//opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(JUMP_IF);
 
 	//opcode_lookup[iCALL].execute = MAKE_EXECUTE(CALL);
@@ -553,7 +572,7 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	//opcode_lookup[iRET].execute = MAKE_EXECUTE(RET);
 
 	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(typed_SYSCALL);
-	//opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
+	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
 
 
 	//opcode_lookup[iSET_BUFFER].execute = MAKE_EXECUTE(SET_BUFFER);
@@ -589,15 +608,17 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 }
 
 #pragma region typed_Instructions
-void VMCore::typed_PUSH(varible* params)
+bool VMCore::typed_PUSH(varible* params)
 {
 	typed_push(params[0]);
+	return true;
 }
-void VMCore::typed_POP(varible* params)
+bool VMCore::typed_POP(varible* params)
 {
 	typed_pop();
+	return true;
 }
-void VMCore::typed_DUP(varible* params)
+bool VMCore::typed_DUP(varible* params)
 {
 	uint32_t params0 = safe_cast<uint32_t>(params[0]);
 
@@ -605,13 +626,14 @@ void VMCore::typed_DUP(varible* params)
 
 	if (index < 0 || params0 + 1 > instance.sp)
 	{
-		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << NUM(instance.ProgramIndex);
 	}
 
 	varible value = dup(instance.typed_stack.at(index));
 	typed_push(value);
+	return true;
 }
-void VMCore::typed_MATH(varible* params)
+bool VMCore::typed_MATH(varible* params)
 {
 	varible val1 = 0, val2 = 0;
 
@@ -643,20 +665,29 @@ void VMCore::typed_MATH(varible* params)
 		DIE << "Math mode with index " << HEX(math_mode) << " does not exist!";
 	}
 	typed_push(result);
+	return true;
 }
 
-void VMCore::typed_SYSCALL(varible* params)
+bool VMCore::typed_JUMP(varible* params)
+{
+	Jump(params[0]);
+	return false; //dont advance the program index
+}
+
+bool VMCore::typed_SYSCALL(varible* params)
 {
 	uint32_t idx = safe_cast<uint32_t>(params[0]);
 	syscall(idx);
+	return true;
 }
 
-void VMCore::typed_EXIT(varible* params)
+bool VMCore::typed_EXIT(varible* params)
 {
 	inputManager.setInputModePrinting(); //reset cursor mode
 	int32_t exitCode = safe_cast<int32_t>(typed_pop());
 	printf("\n\nExit was called with code: %d\n", exitCode);
 	exit(exitCode);
+	return true;
 }
 #pragma endregion
 #pragma region Instructions
@@ -674,7 +705,7 @@ void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 
 	if (index < 0 || params[0] + 1 > instance.sp)
 	{
-		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << NUM(instance.ProgramIndex);
 	}
 
 	uint8_t type = instance.stack_type.at(index);
@@ -1032,7 +1063,6 @@ void VMCore::SYS_PRINT()
 {
 	varible var = typed_pop();
 
-	//Value val = getVar();
 	print_raw(var);
 }
 void VMCore::SYS_DUMP()
@@ -1040,18 +1070,22 @@ void VMCore::SYS_DUMP()
 	//if (!instance.hasSymbols)
 	//	DIE << "Cant dump varible because symbols are not included";
 
-	Value data = getVar();
-	Value symbol = Value(data.data, std::min(data.length, (uint32_t)4)); //if we didnt use a label but imidate value, we just show the start
-	if (!data.immediate && instance.hasSymbols)
+	varible data = typed_pop();
+	varible symbol = new BaseValue(data->type_index, data->data, std::min(data->length, (size_t)4));
+	if (instance.hasSymbols && data->rest != 0) //no symbol
 	{	//if there is a label availible
-		symbol.data = instance.symbols.at(data.index);
-		symbol.length = instance.symbols_length.at(data.index);
+		delete[] symbol->data;
+		symbol->type_index = vt_string;
+		symbol->data = instance.symbols.at(data->rest - 1);
+		symbol->length = instance.symbols_length.at(data->rest - 1);
 	}
 	printf("symbol: \"");
 	print_raw(symbol);
 	printf("\" has value: \"");
 	print_raw(data);
 	printf("\".");
+
+	delete symbol;
 }
 void VMCore::SYS_TO_STRING_UNSIGNED()
 {
@@ -1210,9 +1244,16 @@ void VMCore::print_raw(Value val)
 }
 void VMCore::print_raw(varible var)
 {
-	//uint64_t offset = 0;
-	//auto length = GetVarVLQ(var, &offset);
-	print_raw(var->data/*+offset*/, var->length);
+	if (var->type_index == vt_string) //we have to somehow make it string
+	{
+		print_raw(var->data/*+offset*/, var->length);
+	}
+	else
+	{
+		varible str = BaseValue::ToString(var);
+		print_raw(str->data, str->length);
+		delete str;
+	}
 }
 void VMCore::print_raw(uint8_t* data, uint32_t length) {
 	for (uint32_t i = 0; i < length; ++i)
