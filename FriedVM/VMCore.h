@@ -43,14 +43,23 @@ private:
 	void setVar(Value reference, Value newValue);
 	void Jump(varible offset);
 	void Jump(uint32_t offset, bool immidiate);
-	void Call(uint32_t offset, bool immidiate);
+	void Call(varible offset);
 	void Return();
 #pragma region typed_Instructions
 	bool typed_PUSH(varible* params);
 	bool typed_POP(varible* params);
 	bool typed_DUP(varible* params);
+
 	bool typed_MATH(varible* params);
+
 	bool typed_JUMP(varible* params);
+	bool typed_JUMP_IF(varible* params);
+
+	bool typed_CALL(varible* params);
+	bool typed_CALL_IF(varible* params);
+
+	bool typed_RET(varible* params);
+
 	bool typed_SYSCALL(varible* params);
 	bool typed_EXIT(varible* params);
 #pragma endregion

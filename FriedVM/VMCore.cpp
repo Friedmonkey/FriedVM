@@ -557,10 +557,14 @@ void VMCore::Jump(uint32_t offset, bool immidiate)
 	//else
 		instance.ProgramIndex = offset;// instance.instructionStart + offset;
 }
-void VMCore::Call(uint32_t offset, bool immidiate)
+void VMCore::Call(varible offset)
 {
+	if (offset->type_index != vt_label)
+		DIE << "Jump expected a label but got type " << HEX(offset->type_index) << " instead";
+
+	uint64_t idx = safe_cast<uint64_t>(offset);
 	instance.call_stack.push_back(instance.ProgramIndex); //keep track of where we are now
-	instance.ProgramIndex = offset;
+	instance.ProgramIndex = idx;
 }
 void VMCore::Return()
 {
@@ -590,11 +594,11 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	//opcode_lookup[iCOMP].execute = MAKE_EXECUTE(COMP);
 
 	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(typed_JUMP);
-	//opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(JUMP_IF);
+	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(typed_JUMP_IF);
 
-	//opcode_lookup[iCALL].execute = MAKE_EXECUTE(CALL);
-	//opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(CALL_IF);
-	//opcode_lookup[iRET].execute = MAKE_EXECUTE(RET);
+	opcode_lookup[iCALL].execute = MAKE_EXECUTE(typed_CALL);
+	opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(typed_CALL_IF);
+	opcode_lookup[iRET].execute = MAKE_EXECUTE(typed_RET);
 
 	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(typed_SYSCALL);
 	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
@@ -697,6 +701,28 @@ bool VMCore::typed_JUMP(varible* params)
 {
 	Jump(params[0]);
 	return false; //dont advance the program index
+}
+
+bool VMCore::typed_JUMP_IF(varible* params)
+{
+	return false;
+}
+
+bool VMCore::typed_CALL(varible* params)
+{
+	Call(params[0]);
+	return false;
+}
+
+bool VMCore::typed_CALL_IF(varible* params)
+{
+	return true;
+}
+
+bool VMCore::typed_RET(varible* params)
+{
+	Return();
+	return true;
 }
 
 bool VMCore::typed_SYSCALL(varible* params)
@@ -832,13 +858,13 @@ void VMCore::JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::CALL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	Call(params[0], immediate);
+	//Call(params[0], immediate);
 }
 void VMCore::CALL_IF(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	if (getUintVar() == iTRUE)
 	{
-		Call(params[0], immediate);
+		//Call(params[0], immediate);
 	}
 }
 void VMCore::RET(uint32_t* params, bool immediate, uint8_t arg_size)
