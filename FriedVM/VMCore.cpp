@@ -217,25 +217,43 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		statement.Instruction.execute(statement.params);
 	}
 }
+template <typename Func>
+static varible ExecuteNumber(Func func, varible var1, varible var2)
+{
+	if (!var1->isNumber() || !var2->isNumber()) {
+		DIE << "Cannot add non-number values";
+	}
+	BaseValue* result = new BaseValue(var1->type_index, var1->length);
+	BaseValue::ExecuteTyped(func, var1, var2, result);
+	return result;
+}
 static varible Add(varible var1, varible var2)
 {
-	return BaseValue::ExecuteTyped(BaseValue::AddTypedFunctor(), var1, var2);
+	return ExecuteNumber(BaseValue::AddTypedFunctor(), var1, var2);
 }
 static varible Sub(varible var1, varible var2)
 {
-	return BaseValue::ExecuteTyped(BaseValue::SubTypedFunctor(), var1, var2);
+	return ExecuteNumber(BaseValue::SubTypedFunctor(), var1, var2);
 }
 static varible Mul(varible var1, varible var2)
 {
-	return BaseValue::ExecuteTyped(BaseValue::MulTypedFunctor(), var1, var2);
+	return ExecuteNumber(BaseValue::MulTypedFunctor(), var1, var2);
 }
 static varible Div(varible var1, varible var2)
 {
-	return BaseValue::ExecuteTyped(BaseValue::DivTypedFunctor(), var1, var2);
+	return ExecuteNumber(BaseValue::DivTypedFunctor(), var1, var2);
 }
+//static varible And(varible var1, varible var2)
+//{
+//	return ExecuteNumber(BaseValue::AndTypedFunctor(), var1, var2);
+//}
+//static varible Or(varible var1, varible var2)
+//{
+//	return ExecuteNumber(BaseValue::OrTypedFunctor(), var1, var2);
+//}
 static varible Rnd(varible var1, varible var2)
 {
-	return BaseValue::ExecuteTyped(BaseValue::RndTypedFunctor(), var1, var2);
+	return ExecuteNumber(BaseValue::RndTypedFunctor(), var1, var2);
 }
 static uint64_t GetVarVLQ(varible var, uint64_t *offset)
 {
@@ -589,7 +607,7 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 
 	//opcode_lookup[iAND].execute = MAKE_EXECUTE(AND);
 	//opcode_lookup[iOR].execute = MAKE_EXECUTE(OR);
-	//opcode_lookup[iNOT].execute = MAKE_EXECUTE(NOT);
+	opcode_lookup[iNOT].execute = MAKE_EXECUTE(typed_NOT);
 
 	//opcode_lookup[iCOMP].execute = MAKE_EXECUTE(COMP);
 
@@ -697,6 +715,41 @@ bool VMCore::typed_MATH(varible* params)
 	return true;
 }
 
+//bool VMCore::typed_AND(varible* params)
+//{
+//	varible val2 = typed_pop();
+//	varible val1 = typed_pop();
+//
+//	varible result = And(val1, val2);
+//	typed_push(result);
+//	return true;
+//}
+//
+//bool VMCore::typed_OR(varible* params)
+//{
+//	varible val2 = typed_pop();
+//	varible val1 = typed_pop();
+//
+//	varible result = Or(val1, val2);
+//	typed_push(result);
+//	return true;
+//}
+
+bool VMCore::typed_NOT(varible* params)
+{
+	varible bTrue = BaseValue::makeValue(vt_bool, (uint8_t)1);
+	varible bFalse = BaseValue::makeValue(vt_bool, (uint8_t)0);
+
+	varible val1 = typed_pop();
+
+	return true;
+}
+
+bool VMCore::typed_COMP(varible* params)
+{
+	return true;
+}
+
 bool VMCore::typed_JUMP(varible* params)
 {
 	Jump(params[0]);
@@ -705,24 +758,24 @@ bool VMCore::typed_JUMP(varible* params)
 
 bool VMCore::typed_JUMP_IF(varible* params)
 {
-	return false;
+	return false; //dont advance the program index
 }
 
 bool VMCore::typed_CALL(varible* params)
 {
 	Call(params[0]);
-	return false;
+	return false; //dont advance the program index
 }
 
 bool VMCore::typed_CALL_IF(varible* params)
 {
-	return true;
+	return false; //dont advance the program index
 }
 
 bool VMCore::typed_RET(varible* params)
 {
 	Return();
-	return true;
+	return true; //advance the program index otherwise we end up running the call again or whatever!
 }
 
 bool VMCore::typed_SYSCALL(varible* params)

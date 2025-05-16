@@ -52,6 +52,12 @@ private:
 
 	bool typed_MATH(varible* params);
 
+	//bool typed_AND(varible* params);
+	//bool typed_OR(varible* params);
+	bool typed_NOT(varible* params);
+		 
+	bool typed_COMP(varible* params);
+
 	bool typed_JUMP(varible* params);
 	bool typed_JUMP_IF(varible* params);
 

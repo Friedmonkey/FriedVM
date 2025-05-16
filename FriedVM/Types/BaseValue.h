@@ -225,11 +225,6 @@ struct BaseValue
             DIE << "Null pointer passed to ExecuteSingleTypedTemplate";
             //return nullptr;
         }
-        //if (v1.type_index != v2.type_index || v1.length != v2.length) {
-        //    // Cast v2 to the same type as v1
-        //    BaseValue casted = v2.Cast(v1.type_index);
-        //    return Add(v1, casted);  // Now they are both of the same type
-        //}
 
         // Dispatch based on type
         switch (v1->type_index) {
@@ -252,23 +247,12 @@ struct BaseValue
 
     //BaseValue ExecuteTyped(Func func, const BaseValue& v1, const BaseValue& v2);
     template <typename Func>
-    static BaseValue* ExecuteTyped(Func func, const BaseValue* v1, const BaseValue* v2) {
+    static BaseValue* ExecuteTyped(Func func, const BaseValue* v1, const BaseValue* v2, BaseValue* result) {
         if (!v1 || !v2) {
             DIE << "Null pointer passed to ExecuteTyped";
             //return nullptr;
         }
 
-        // Validate if both values are numbers
-        if (!v1->isNumber() || !v2->isNumber()) {
-            DIE << "Cannot add non-number values";
-        }
-        //if (v1.type_index != v2.type_index || v1.length != v2.length) {
-        //    // Cast v2 to the same type as v1
-        //    BaseValue casted = v2.Cast(v1.type_index);
-        //    return Add(v1, casted);  // Now they are both of the same type
-        //}
-
-        BaseValue* result = new BaseValue(v1->type_index, v1->length);
 
         // Dispatch based on type
         switch (v1->type_index) {
@@ -320,6 +304,22 @@ struct BaseValue
                 });
         }
     };
+    //static struct AndTypedFunctor {
+    //    template <typename T>
+    //    BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
+    //        return HandleTyped<T>(*v1, *v2, [](T a, T b) {
+    //            return a & b;
+    //            });
+    //    }
+    //};
+    //static struct OrTypedFunctor {
+    //    template <typename T>
+    //    BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
+    //        return HandleTyped<T>(*v1, *v2, [](T a, T b) {
+    //            return a | b;
+    //        });
+    //    }
+    //};
     static struct RndTypedFunctor {
         mutable uint64_t seed = 0xDEADBABE12345678; // you can make it settable if u want :)
 

@@ -5,6 +5,8 @@ enum ValueType
     vt_raw =            0x00,
     vt_string =         0x01,   //not that complex but it does store its length
 
+    vt_bool =           0x0B,   //true or false
+
     vt_uint8_t =        0x10,   // none - char, byte, uint8, u8
     vt_uint16_t =       0x12,   // none - ushort, uint16, u16
     vt_uint32_t =       0x13,   // 50u  - uint, uint32, u32

@@ -6,6 +6,7 @@ size_t BaseValue::getTypeSize(ValueType type) {
     switch (type) {
     case vt_raw: return 0;
     case vt_string: return 0;
+    case vt_bool: return 1;
     case vt_uint8_t: return sizeof(uint8_t);
     case vt_uint16_t: return sizeof(uint16_t);
     case vt_uint32_t: return sizeof(uint32_t);
@@ -27,6 +28,7 @@ size_t BaseValue::getTypeSize(ValueType type) {
 void BaseValue::FillDefaultValue(BaseValue *value) {
     switch (value->type_index) {
         //case vt_raw: return 4;
+    case vt_bool: value->data = new uint8_t[1]{ 0x00 }; break;
     case vt_uint8_t: value->data = new uint8_t[1]{ 0x00 }; break;
     case vt_uint16_t: value->data = new uint8_t[2]{ 0x00, 0x00 }; break;
     case vt_uint32_t: value->data = new uint8_t[4]{ 0x00, 0x00, 0x00, 0x00 }; break;
@@ -56,6 +58,8 @@ std::string BaseValue::toString() const
 {
     return std::string("not implemented lol");
 }
+
+
 
 //// The main Add method to dispatch based on type
 //template <typename Func>
