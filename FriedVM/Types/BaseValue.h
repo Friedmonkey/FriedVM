@@ -59,6 +59,16 @@ struct BaseValue
         if (value->length != getTypeSize(value->type_index))
             DIE << "Type mismatch: stored data doesn't match requested type!";
 
+        if (value->length != sizeof(T))
+        {
+            DIE << "Templated type does not match the underlying datatype";
+            //instead of this error it should somehow make it work
+            //if this is the data we request, itll just pad it out to make it work?
+            //T is the type we want
+            //value->data is the data that needs to be made to work with T
+            //value->type_index is an enum representing the datatype
+        }
+
         // Create a temporary variable to store the value
         T result;
         // Safely copy the data into the result variable
