@@ -45,12 +45,21 @@ struct BaseValue
         return val;
     }
 
-    // Static factory methods for creating BaseValue instances
     template<typename T>
     static BaseValue* makeValue(ValueType type, T value) {
         BaseValue* val = new BaseValue(type, getTypeSize(type));
-        std::memcpy(val->data, &value, sizeof(T));  // Copy the raw data
+        std::memcpy(val->data, &value, sizeof(T)); // Copy the raw data
         return val;
+    }
+
+    static void print(const BaseValue *val)
+    {
+        if (val == nullptr)
+            return;
+        for (size_t i = 0; i < val->length; i++) {
+            printf("0x%02X ", val->data[i]);
+        }
+        printf("\n");
     }
 
     template<typename T>
@@ -59,21 +68,80 @@ struct BaseValue
         if (value->length != getTypeSize(value->type_index))
             DIE << "Type mismatch: stored data doesn't match requested type!";
 
-        if (value->length != sizeof(T))
-        {
-            DIE << "Templated type does not match the underlying datatype";
-            //instead of this error it should somehow make it work
-            //if this is the data we request, itll just pad it out to make it work?
-            //T is the type we want
-            //value->data is the data that needs to be made to work with T
-            //value->type_index is an enum representing the datatype
+        switch (value->type_index) {
+        case vt_bool: {
+            bool v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
         }
+        case vt_uint8_t: {
+            uint8_t v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_uint16_t: {
+            uint16_t v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_uint32_t: {
+            uint32_t v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_uint64_t: {
+            uint64_t v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_int8_t: {
+            int8_t v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_int16_t: {
+            int16_t v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_int32_t: {
+            int32_t v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_int64_t: {
+            int64_t v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_float_t: {
+            float v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        case vt_double_t: {
+            double v{};
+            std::memcpy(&v, value->data, sizeof(v));
+            return static_cast<T>(v);
+        }
+        default:
+            DIE << "Unsupported type in getValue";
+        }
+        //if (value->length != sizeof(T))
+        //{
+        //    DIE << "Templated type does not match the underlying datatype";
+        //    //instead of this error it should somehow make it work
+        //    //if this is the data we request, itll just pad it out to make it work?
+        //    //T is the type we want
+        //    //value->data is the data that needs to be made to work with T
+        //    //value->type_index is an enum representing the datatype
+        //}
 
-        // Create a temporary variable to store the value
-        T result;
-        // Safely copy the data into the result variable
-        std::memcpy(&result, value->data, sizeof(T));
-        return result;
+        //// Create a temporary variable to store the value
+        //T result;
+        //// Safely copy the data into the result variable
+        //std::memcpy(&result, value->data, sizeof(T));
+        //return result;
     }
 
     static BaseValue* dupValue(const BaseValue* value) {
@@ -162,10 +230,6 @@ struct BaseValue
     // Template function for adding two BaseValue instances
     template<typename T>
     static BaseValue* HandleTyped(const BaseValue& v1, const BaseValue& v2, std::function<T(T,T)> operation) {
-        if (v1.type_index != v2.type_index) {
-            DIE << "Type mismatch in HandleTyped";
-        }
-
         // Ensure the size of T matches the type size of v1
         if (sizeof(T) != getTypeSize(v1.type_index)) {
             DIE << "Size mismatch between T and BaseValue type";
@@ -174,13 +238,29 @@ struct BaseValue
         // Now, we assume the data in v1 and v2 is of the correct length and type
         // Cast the data from uint8_t* to T* (the target type, e.g., uint32_t*)
         T* data1 = reinterpret_cast<T*>(v1.data);
-        T* data2 = reinterpret_cast<T*>(v2.data);
+        T* data2 = nullptr;
+        T temp;  // keeps the converted value alive
+
+        if (v1.type_index == v2.type_index)
+        {
+            data2 = reinterpret_cast<T*>(v2.data);
+        }
+        else
+        {
+            temp = BaseValue::getValue<T>(&v2); // copy into a safe owned place
+            data2 = &temp;
+        }
+
+
 
         // Perform the addition
         T result = operation(*data1, *data2);
 
-
         return makeValue<T>(v1.type_index, result);
+        //return new BaseValue<T>(v1.type_index, result);
+        //BaseValue *blah = makeValue<T>(v1.type_index, result);
+
+        //return blah;
         //// Create a new BaseValue to store the result
         //BaseValue resultVal(v1.type_index, 1);  // Only one element in the result
         //std::memcpy(resultVal.data, &result, sizeof(T));  // Copy the result back into the data
@@ -257,7 +337,7 @@ struct BaseValue
 
     //BaseValue ExecuteTyped(Func func, const BaseValue& v1, const BaseValue& v2);
     template <typename Func>
-    static BaseValue* ExecuteTyped(Func func, const BaseValue* v1, const BaseValue* v2, BaseValue* result) {
+    static BaseValue* ExecuteTyped(Func func, const BaseValue* v1, const BaseValue* v2){ //, BaseValue* result) {
         if (!v1 || !v2) {
             DIE << "Null pointer passed to ExecuteTyped";
             //return nullptr;
@@ -266,21 +346,21 @@ struct BaseValue
 
         // Dispatch based on type
         switch (v1->type_index) {
-        case vt_uint8_t:   result = func.template operator()<uint8_t>(v1, v2); break;
-        case vt_uint16_t:  result = func.template operator()<uint16_t>(v1, v2); break;
-        case vt_uint32_t:  result = func.template operator()<uint32_t>(v1, v2); break;
-        case vt_uint64_t:  result = func.template operator()<uint64_t>(v1, v2); break;
-        case vt_int8_t:    result = func.template operator()<int8_t>(v1, v2); break;
-        case vt_int16_t:   result = func.template operator()<int16_t>(v1, v2); break;
-        case vt_int32_t:   result = func.template operator()<int32_t>(v1, v2); break;
-        case vt_int64_t:   result = func.template operator()<int64_t>(v1, v2); break;
-        case vt_float_t:   result = func.template operator()<float>(v1, v2); break;
-        case vt_double_t:  result = func.template operator()<double>(v1, v2); break;
+        case vt_uint8_t:   return func.template operator()<uint8_t>(v1, v2); break;
+        case vt_uint16_t:  return func.template operator()<uint16_t>(v1, v2); break;
+        case vt_uint32_t:  return func.template operator()<uint32_t>(v1, v2); break;
+        case vt_uint64_t:  return func.template operator()<uint64_t>(v1, v2); break;
+        case vt_int8_t:    return func.template operator()<int8_t>(v1, v2); break;
+        case vt_int16_t:   return func.template operator()<int16_t>(v1, v2); break;
+        case vt_int32_t:   return func.template operator()<int32_t>(v1, v2); break;
+        case vt_int64_t:   return func.template operator()<int64_t>(v1, v2); break;
+        case vt_float_t:   return func.template operator()<float>(v1, v2); break;
+        case vt_double_t:  return func.template operator()<double>(v1, v2); break;
         default:
             DIE << "Unsupported type in ExecuteTyped";
         }
 
-        return result;
+        return nullptr;
     }
     static struct AddTypedFunctor {
         template <typename T>

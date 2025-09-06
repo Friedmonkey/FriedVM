@@ -223,9 +223,12 @@ static varible ExecuteNumber(Func func, varible var1, varible var2)
 	if (!var1->isNumber() || !var2->isNumber()) {
 		DIE << "Cannot add non-number values";
 	}
-	BaseValue* result = new BaseValue(var1->type_index, var1->length);
-	BaseValue::ExecuteTyped(func, var1, var2, result);
-	return result;
+	//BaseValue* result = new BaseValue(var1->type_index, var1->length);
+	//BaseValue::print(result);
+	return BaseValue::ExecuteTyped(func, var1, var2); //, result);
+	//BaseValue::print(result);
+	//BaseValue::print(result2);
+	//return result;
 }
 static varible Add(varible var1, varible var2)
 {
