@@ -562,6 +562,41 @@ void VMCore::setVar(Value reference, Value newValue) {
 	instance.varibles[index] = newValue.data; 
 	instance.meta[index] = newValue.length;
 }
+void VMCore::typed_setVar(varible reference, varible newValue) {
+	//when setting something it needs to be a ref not immidate
+	//if (reference.immediate) {
+	//	DIE << "Cant assign value to immidate!";
+	//}
+
+	//new value needs to have data or its kind of worthless
+	if (newValue->data == nullptr) {
+		DIE << "Eror trying to assign to value, cant assign nothing to value (for now)";
+	}
+
+	//if (newValue->type_index != reference->type_index)
+	//{
+	//	DIE << "cant assing diffrent types or smth idk?";
+	//	//this is pretty string can assing string to raw
+	//	//cant assing uint8 to uint32
+	//	//need better typcompatability system
+	//	//either that or just overwrite it lol
+	//}
+	reference->type_index = newValue->type_index;
+
+
+	//delete[]
+	//free(reference->data);
+
+	reference->data = newValue->data;
+	reference->length = newValue->length;
+
+
+	//its a refernce so we can use the index
+	//uint32_t index = reference.index;
+	//freeVarible(index);
+	//instance.varibles[index] = newValue.data;
+	//instance.meta[index] = newValue.length;
+}
 
 void VMCore::Jump(varible offset)
 {
@@ -1161,9 +1196,13 @@ void VMCore::SYS_CLEAR_CONSOLE()
 
 void VMCore::SYS_READ()
 {
-	Value buffer = getVar(); //put address on stack that we can write to
-	Value val = read_raw();
-	setVar(buffer, val);
+	varible buffer = typed_pop();
+	varible val = read_raw();
+	typed_setVar(buffer, val);
+
+	//Value buffer = getVar(); //put address on stack that we can write to
+	//Value val = read_raw();
+	//setVar(buffer, val);
 }
 
 void VMCore::SYS_PRINT()
@@ -1365,22 +1404,51 @@ void VMCore::print_raw(uint8_t* data, uint32_t length) {
 	for (uint32_t i = 0; i < length; ++i)
 		putchar(data[i]);  // Print each byte as a character
 }
-Value VMCore::read_raw() {
+varible VMCore::read_raw() {
 	std::vector<uint8_t> buffer;
 	int value = getchar();
 
-	while(value >= ' ' && value <= '~')
+	while (value >= ' ' && value <= '~')
 	{
 		buffer.push_back(static_cast<uint8_t>(value));
 		value = getchar();
 	}
 
 	uint32_t length = buffer.size();
-	uint8_t* data = new uint8_t[length];
-	std::copy(buffer.begin(), buffer.end(), data);
+
+
+	BaseValue* result = new BaseValue(vt_string, 0);
+	result->length = length;
+	result->data = new uint8_t[length]; // or malloc if you want C-style
+	std::copy(buffer.begin(), buffer.end(), result->data);
+	return result;
+	//std::memcpy(result->data, str.data(), result->length);
+
+
+
+
+	//return makeValue<char*>();
+	//uint8_t* data = new uint8_t[length];
+	//std::copy(buffer.begin(), buffer.end(), data);
 	// Now `array` points to the raw data, and `length` contains the number of elements
-	return Value(data, length, true);
+	//return Value(data, length, true);
 }
+//Value VMCore::read_raw() {
+//	std::vector<uint8_t> buffer;
+//	int value = getchar();
+//
+//	while(value >= ' ' && value <= '~')
+//	{
+//		buffer.push_back(static_cast<uint8_t>(value));
+//		value = getchar();
+//	}
+//
+//	uint32_t length = buffer.size();
+//	uint8_t* data = new uint8_t[length];
+//	std::copy(buffer.begin(), buffer.end(), data);
+//	// Now `array` points to the raw data, and `length` contains the number of elements
+//	return Value(data, length, true);
+//}
 //Value VMCore::read_raw() {
 //	std::vector<uint8_t> buffer;
 //

@@ -41,6 +41,7 @@ private:
 	uint32_t getUintVar();
 	Value getVar();
 	void setVar(Value reference, Value newValue);
+	void typed_setVar(varible reference, varible newValue);
 	void Jump(varible offset);
 	void Jump(uint32_t offset, bool immidiate);
 	void Call(varible offset);
@@ -137,7 +138,7 @@ private:
 	void print_raw(Value val);
 	void print_raw(varible var);
 	void print_raw(uint8_t* data, uint32_t length);
-	Value read_raw();
+	varible read_raw();
 #pragma endregion
 
 
