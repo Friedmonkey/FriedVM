@@ -7,13 +7,11 @@ enum ValueType
 
     //complex types
     vt_lazy =           0x0A,   // for lazy values, gets loaded one time lazy<string>
-    vt_constant =       0x0B,   // for constant values (header only) constant<int>
+    vt_label =          0x0B,   // :hello
     vt_complex_type =   0x0C,   // only used in header, basicly means Read TypedByte system() usefull if u reuse a certain type
     vt_struct =         0x0D,   // struct { field int age; }
     vt_array =          0x0E,   // array[5]<int>, arr[5]<char> 
     vt_pointer =        0x0F,   // ptr<int>, pointer<int>
-
-    vt_label =          0xE0,   // :hello //will be 0B once const is gone
 
     vt_bool =           0x10,   //true or false
 

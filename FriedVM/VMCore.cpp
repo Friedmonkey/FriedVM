@@ -35,20 +35,31 @@ void VMCore::Parse()
 	while(instance.pc < instance.instructionStart) //declare section
 	{
 		varible var_type = binaryApi.ParseTypeByte(complex_buffer);
-		auto declaredDefault = binaryApi.VLQ();
-		auto declaredValue = binaryApi.VLQ();
+		uint64_t declaredDefault = binaryApi.VLQ();
+		uint64_t declaredValue = binaryApi.VLQ();
+		uint64_t declaredConst = 0;
+		varible newDefaultVarible = nullptr;
+
+		bool hasConst = var_type->isConst;
+		if (hasConst)
+			declaredConst = binaryApi.VLQ();
+
+		bool useDefault = (hasConst || (declaredDefault > 0));
+		if (useDefault)
+		{
+			newDefaultVarible = BaseValue::dupValue(var_type);
+			BaseValue::FillDefaultValue(newDefaultVarible);
+		}
+
+
 		if (declaredDefault > 0)
 		{
-			varible newDefaultVarible = BaseValue::dupValue(var_type);
-			BaseValue::FillDefaultValue(newDefaultVarible);
-
 			for (size_t i = 0; i < declaredDefault; i++)
 			{
 				varible newVarible = BaseValue::dupValue(newDefaultVarible);
 				instance.typed_varibles.push_back(newVarible);
 				newVarible->rest = instance.typed_varibles.size();
 			}
-			delete newDefaultVarible;
 		}
 		for (size_t i = 0; i < declaredValue; i++)
 		{
@@ -75,6 +86,27 @@ void VMCore::Parse()
 			newVarible->data = buffer;*/
 			instance.typed_varibles.push_back(newVarible);
 			newVarible->rest = instance.typed_varibles.size();
+		}
+		if (hasConst)
+		{
+			varible newVarible = BaseValue::dupValue(newDefaultVarible);
+			newVarible->isConst = true;
+			instance.typed_varibles.push_back(newVarible);
+			newVarible->rest = instance.typed_varibles.size();
+
+			for (size_t i = 0; i < declaredConst; i++)
+			{
+				varible newVarible = BaseValue::dupValue(var_type);
+				newVarible->isConst = true;
+				binaryApi.FillData(&totalLength, newVarible);
+				instance.typed_varibles.push_back(newVarible);
+				newVarible->rest = instance.typed_varibles.size();
+			}
+		}
+
+		if (useDefault)
+		{
+			delete newDefaultVarible;
 		}
 		delete var_type;
 		////uint8_t type_byte = 

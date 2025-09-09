@@ -295,14 +295,17 @@ uint64_t FBinary::ParseEmptyVarCount()
 
 varible FBinary::ParseTypeByte(std::vector<uint8_t> &complex_buffer, bool canBeComplex)
 {
-	ValueType type_byte = static_cast<ValueType>(GetByte());
+	uint8_t byte = GetByte();
 
-	if (type_byte == vt_constant)
-	{
-		varible val = ParseTypeByte(complex_buffer);
-		val->isConst = true;
-		return val;
-	}
+	bool isConst = ((byte & vt_constant_flag_mask) != 0);
+	ValueType type_byte = static_cast<ValueType>(byte & ~vt_constant_flag_mask);
+
+	//if (type_byte == vt_constant)
+	//{
+	//	varible val = ParseTypeByte(complex_buffer);
+	//	val->isConst = true;
+	//	return val;
+	//}
 	//else if (type_byte == vt_string)
 	//{
 	//	return BaseValue::createValue(type_byte);
@@ -319,9 +322,11 @@ varible FBinary::ParseTypeByte(std::vector<uint8_t> &complex_buffer, bool canBeC
 	//	while (byte & 0x80);
 	//	ParseTypeByte(complex_buffer);
 	//}
-	else
+	//else
 	{
-		return BaseValue::createValue(type_byte);
+		varible val = BaseValue::createValue(type_byte);
+		val->isConst = isConst;
+		return val;
 	}
 	//if (IsComplexType(type_byte))
 	//{
@@ -344,7 +349,6 @@ bool FBinary::IsComplexType(ValueType vt)
 	switch (vt)
 	{
 	case vt_string:
-	case vt_constant:
 	case vt_complex_type:
 	case vt_struct:
 	case vt_array:
@@ -362,7 +366,6 @@ bool FBinary::IsHeaderComplexType(ValueType vt)
 	switch (vt)
 	{
 	case vt_lazy:
-	case vt_constant:
 	case vt_complex_type:
 	case vt_struct:
 		return true;

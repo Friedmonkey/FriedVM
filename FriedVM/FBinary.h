@@ -30,4 +30,5 @@ private:
 	uint8_t GetByte(uint64_t* position);
 	uint8_t GetByte();
 	uint8_t* ReadBytes(uint8_t count);
+	const uint8_t vt_constant_flag_mask = 0b10000000;
 };
