@@ -5,6 +5,16 @@
 
 void VMCore::Parse()
 {
+	float value = 20.0;
+	varible var1 = BaseValue::makeValue(vt_float_t, value);
+
+
+	uint8_t value2 = 20;
+	varible var2 = BaseValue::makeValue(vt_uint8_t, value2);
+
+
+	varible var3 = BaseValue::EQCompareNumbers(var1, var2);
+	bool value3 = safe_cast<bool>(var3);
 	//auto vlqresult = binaryApi.VLQ();
 
 
@@ -679,7 +689,7 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	//opcode_lookup[iOR].execute = MAKE_EXECUTE(OR);
 	opcode_lookup[iNOT].execute = MAKE_EXECUTE(typed_NOT);
 
-	//opcode_lookup[iCOMP].execute = MAKE_EXECUTE(COMP);
+	opcode_lookup[iCOMP].execute = MAKE_EXECUTE(typed_COMP);
 
 	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(typed_JUMP);
 	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(typed_JUMP_IF);
@@ -817,6 +827,28 @@ bool VMCore::typed_NOT(varible* params)
 
 bool VMCore::typed_COMP(varible* params)
 {
+	varible bTrue = BaseValue::makeValue(vt_bool, (uint8_t)1);
+	varible bFalse = BaseValue::makeValue(vt_bool, (uint8_t)0);
+
+	uint32_t compare_mode = safe_cast<uint32_t>(params[0]);
+	varible val1 = typed_pop(); 
+	varible val2 = typed_pop();
+
+	bool result = false;
+	switch (compare_mode) {
+	case cmEQ: result = (val1 == val2); break;
+	case cmNEQ: result = (val1 != val2); break;
+	case cmGT: result = (val1 > val2); break;
+	case cmGTE: result = (val1 >= val2); break;
+	case cmLT: result = (val1 < val2); break;
+	case cmLTE: result = (val1 <= val2); break;
+	default:
+		DIE << "Compare mode with index " << HEX(compare_mode) << " does not exist!";
+	}
+	if (result)
+		typed_push(bTrue);
+	else
+		typed_push(bFalse);
 	return true;
 }
 

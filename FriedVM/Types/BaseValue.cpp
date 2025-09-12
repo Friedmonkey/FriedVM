@@ -41,6 +41,7 @@ void BaseValue::FillDefaultValue(BaseValue *value) {
     case vt_double_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; break;
     //case vt_pointer: return 4;
     case vt_string: value->data = new uint8_t[0]; break;
+    case vt_label: value->data = new uint8_t[1]{ 0x00 }; break; //default label just points to start of binary
     default: DIE << "unhandled type"; break;
     }
 }

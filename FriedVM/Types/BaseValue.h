@@ -62,6 +62,180 @@ struct BaseValue
         printf("\n");
     }
 
+
+
+    template<typename T1, typename T2, typename Operation>
+    static BaseValue* compute(const ValueType return_type, const BaseValue* var1, const BaseValue* var2, Operation operation)
+    {
+        T1 val1 = getValue<T1>(var1);
+        T2 val2 = getValue<T2>(var2);
+        return operation(return_type, val1, val2);
+    }
+
+#define CASE_OP(RET, VT2, T1, T2, OP) case VT2: return compute<T1, T2>(RET, v1, v2, OP);
+
+#define SWITCH_SECOND(RET, T1, OP)                        \
+    switch (v2->type_index) {                        \
+        CASE_OP(RET, vt_uint8_t,  T1, uint8_t,  OP);      \
+        CASE_OP(RET, vt_uint16_t, T1, uint16_t, OP);      \
+        CASE_OP(RET, vt_uint32_t, T1, uint32_t, OP);      \
+        CASE_OP(RET, vt_uint64_t, T1, uint64_t, OP);      \
+        CASE_OP(RET, vt_int8_t,   T1, int8_t,   OP);      \
+        CASE_OP(RET, vt_int16_t,  T1, int16_t,  OP);      \
+        CASE_OP(RET, vt_int32_t,  T1, int32_t,  OP);      \
+        CASE_OP(RET, vt_int64_t,  T1, int64_t,  OP);      \
+        CASE_OP(RET, vt_float_t,  T1, float,    OP);      \
+        CASE_OP(RET, vt_double_t, T1, double,   OP);      \
+        default: DIE << "Unsupported rhs type";      \
+    }
+
+    template<typename Operation>
+    static BaseValue* computeNumbers(const BaseValue* v1, const BaseValue* v2, Operation op)
+    {
+        switch (v1->type_index) {
+        case vt_uint8_t:  SWITCH_SECOND(vt_uint8_t, uint8_t, op); break;
+        case vt_uint16_t: SWITCH_SECOND(vt_uint16_t, uint16_t, op); break;
+        case vt_uint32_t: SWITCH_SECOND(vt_uint32_t, uint32_t, op); break;
+        case vt_uint64_t: SWITCH_SECOND(vt_uint64_t, uint64_t, op); break;
+        case vt_int8_t:   SWITCH_SECOND(vt_int8_t, int8_t, op); break;
+        case vt_int16_t:  SWITCH_SECOND(vt_int16_t, int16_t, op); break;
+        case vt_int32_t:  SWITCH_SECOND(vt_int32_t, int32_t, op); break;
+        case vt_int64_t:  SWITCH_SECOND(vt_int64_t, int64_t, op); break;
+        case vt_float_t:  SWITCH_SECOND(vt_float_t, float, op); break;
+        case vt_double_t: SWITCH_SECOND(vt_double_t, double, op); break;
+        default: DIE << "Unsupported lhs type";
+        }
+    }
+    template<typename Operation>
+    static BaseValue* compareNumbers(const BaseValue* v1, const BaseValue* v2, Operation op)
+    {
+        switch (v1->type_index) {
+        case vt_uint8_t:  SWITCH_SECOND(vt_bool, uint8_t, op); break;
+        case vt_uint16_t: SWITCH_SECOND(vt_bool, uint16_t, op); break;
+        case vt_uint32_t: SWITCH_SECOND(vt_bool, uint32_t, op); break;
+        case vt_uint64_t: SWITCH_SECOND(vt_bool, uint64_t, op); break;
+        case vt_int8_t:   SWITCH_SECOND(vt_bool, int8_t, op); break;
+        case vt_int16_t:  SWITCH_SECOND(vt_bool, int16_t, op); break;
+        case vt_int32_t:  SWITCH_SECOND(vt_bool, int32_t, op); break;
+        case vt_int64_t:  SWITCH_SECOND(vt_bool, int64_t, op); break;
+        case vt_float_t:  SWITCH_SECOND(vt_bool, float, op); break;
+        case vt_double_t: SWITCH_SECOND(vt_bool, double, op); break;
+        default: DIE << "Unsupported lhs type";
+        }
+    }
+
+
+    static BaseValue* EQCompareNumbers(const BaseValue* v1, const BaseValue* v2)
+    {
+        return compareNumbers(v1, v2, EQCompOperation{});
+    }
+    struct EQCompOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(ret_type, a == b);
+        }
+    };
+    static BaseValue* GTCompareNumbers(const BaseValue* v1, const BaseValue* v2)
+    {
+        return compareNumbers(v1, v2, GTCompOperation{});
+    }
+    struct GTCompOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(ret_type, a > b);
+        }
+    };
+
+    static BaseValue* AddNumbers(const BaseValue* v1, const BaseValue* v2)
+    {
+        return computeNumbers(v1, v2, AddOperation{});
+    }
+    static BaseValue* SubNumbers(const BaseValue* v1, const BaseValue* v2)
+    {
+        return computeNumbers(v1, v2, SubOperation{});
+    }
+    static BaseValue* MulNumbers(const BaseValue* v1, const BaseValue* v2)
+    {
+        return computeNumbers(v1, v2, MulOperation{});
+    }
+    static BaseValue* DivNumbers(const BaseValue* v1, const BaseValue* v2)
+    {
+        return computeNumbers(v1, v2, DivOperation{});
+    }
+
+
+
+    struct AddOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(ret_type, a + b);
+        }
+    };
+    struct SubOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(ret_type, a - b);
+        }
+    };
+    struct MulOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(ret_type, a * b);
+        }
+    };
+    struct DivOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(ret_type, a / b);
+        }
+    };
+
+
+    //static BaseValue* computeMagic(const BaseValue* var1, const BaseValue* var2, std::function<BaseValue* (?, ?)> operation)
+    //{
+    //    ? type1 = magicTypeMap[var1.type_index];
+    //    ? type2 = magicTypeMap[var2.type_index];
+    //    return compute<type1, type2>(var1, var2);
+    //}
+
+
+    //static BaseValue* AddNumbers(const BaseValue* var1, const BaseValue* var2)
+    //{
+    //    ? func = BaseValue* (type_index ret_type, ? val1, ? val2) {
+    //        ? output = val1 + val2;
+    //        return makeValue(ret_type, output);
+    //    }
+    //    return computemagic(var1, var2, func);
+    //}
+
+    //template <typename Func>
+    //static BaseValue* computeTyped(Func func, const BaseValue* v1, const BaseValue* v2) { //, BaseValue* result) {
+    //    if (!v1 || !v2) {
+    //        DIE << "Null pointer passed to ExecuteTyped";
+    //        //return nullptr;
+    //    }
+
+
+    //    // Dispatch based on type
+    //    switch (v1->type_index) {
+    //    case vt_uint8_t:   return func.template operator() < uint8_t > (v1, v2); break;
+    //    case vt_uint16_t:  return func.template operator() < uint16_t > (v1, v2); break;
+    //    case vt_uint32_t:  return func.template operator() < uint32_t > (v1, v2); break;
+    //    case vt_uint64_t:  return func.template operator() < uint64_t > (v1, v2); break;
+    //    case vt_int8_t:    return func.template operator() < int8_t > (v1, v2); break;
+    //    case vt_int16_t:   return func.template operator() < int16_t > (v1, v2); break;
+    //    case vt_int32_t:   return func.template operator() < int32_t > (v1, v2); break;
+    //    case vt_int64_t:   return func.template operator() < int64_t > (v1, v2); break;
+    //    case vt_float_t:   return func.template operator() < float > (v1, v2); break;
+    //    case vt_double_t:  return func.template operator() < double > (v1, v2); break;
+    //    default:
+    //        DIE << "Unsupported type in ExecuteTyped";
+    //    }
+
+    //    return nullptr;
+    //}
+
+
     template<typename T>
     static T getValue(const BaseValue* value) {
         // Verify the length matches the expected type size
@@ -89,6 +263,7 @@ struct BaseValue
             std::memcpy(&v, value->data, sizeof(v));
             return static_cast<T>(v);
         }
+        case vt_label:
         case vt_uint64_t: {
             uint64_t v{};
             std::memcpy(&v, value->data, sizeof(v));
@@ -362,6 +537,7 @@ struct BaseValue
 
         return nullptr;
     }
+
     static struct AddTypedFunctor {
         template <typename T>
         BaseValue* operator()(const BaseValue* v1, const BaseValue* v2) const {
