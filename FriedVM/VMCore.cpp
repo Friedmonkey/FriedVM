@@ -5,16 +5,16 @@
 
 void VMCore::Parse()
 {
-	float value = 20.0;
-	varible var1 = BaseValue::makeValue(vt_float_t, value);
+	//float value = 20.0;
+	//varible var1 = BaseValue::makeValue(vt_float_t, value);
 
 
-	uint8_t value2 = 20;
-	varible var2 = BaseValue::makeValue(vt_uint8_t, value2);
+	//uint8_t value2 = 20;
+	//varible var2 = BaseValue::makeValue(vt_uint8_t, value2);
 
 
-	varible var3 = BaseValue::EQCompareNumbers(var1, var2);
-	bool value3 = safe_cast<bool>(var3);
+	//varible var3 = BaseValue::EQCompareNumbers(var1, var2);
+	//bool value3 = safe_cast<bool>(var3);
 	//auto vlqresult = binaryApi.VLQ();
 
 
@@ -259,47 +259,7 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		statement.Instruction.execute(statement.params);
 	}
 }
-template <typename Func>
-static varible ExecuteNumber(Func func, varible var1, varible var2)
-{
-	if (!var1->isNumber() || !var2->isNumber()) {
-		DIE << "Cannot add non-number values";
-	}
-	//BaseValue* result = new BaseValue(var1->type_index, var1->length);
-	//BaseValue::print(result);
-	return BaseValue::ExecuteTyped(func, var1, var2); //, result);
-	//BaseValue::print(result);
-	//BaseValue::print(result2);
-	//return result;
-}
-static varible Add(varible var1, varible var2)
-{
-	return ExecuteNumber(BaseValue::AddTypedFunctor(), var1, var2);
-}
-static varible Sub(varible var1, varible var2)
-{
-	return ExecuteNumber(BaseValue::SubTypedFunctor(), var1, var2);
-}
-static varible Mul(varible var1, varible var2)
-{
-	return ExecuteNumber(BaseValue::MulTypedFunctor(), var1, var2);
-}
-static varible Div(varible var1, varible var2)
-{
-	return ExecuteNumber(BaseValue::DivTypedFunctor(), var1, var2);
-}
-//static varible And(varible var1, varible var2)
-//{
-//	return ExecuteNumber(BaseValue::AndTypedFunctor(), var1, var2);
-//}
-//static varible Or(varible var1, varible var2)
-//{
-//	return ExecuteNumber(BaseValue::OrTypedFunctor(), var1, var2);
-//}
-static varible Rnd(varible var1, varible var2)
-{
-	return ExecuteNumber(BaseValue::RndTypedFunctor(), var1, var2);
-}
+
 static uint64_t GetVarVLQ(varible var, uint64_t *offset)
 {
 	uint64_t value = 0;
@@ -778,16 +738,16 @@ bool VMCore::typed_MATH(varible* params)
 	varible one = BaseValue::makeValue(vt_uint32_t, 1);
 
 	switch (math_mode) {
-	case mmADD: result = Add(val1, val2); break;
-	case mmSUB: result = Sub(val1, val2); break;
-	case mmINC: result = Add(val1, one); break;
-	case mmDEC: result = Sub(val1, one); break;
-	case mmMUL: result = Mul(val1, val2); break;
-	case mmDIV: result = Div(val1, val2); break;
+	case mmADD: result = BaseValue::computeNumbers(val1, val2, BaseValue::AddOperation{}); break;
+	case mmSUB: result = BaseValue::computeNumbers(val1, val2, BaseValue::SubOperation{}); break;
+	case mmINC: result = BaseValue::computeNumbers(val1, one, BaseValue::AddOperation{}); break;
+	case mmDEC: result = BaseValue::computeNumbers(val1, one, BaseValue::SubOperation{}); break;
+	case mmMUL: result = BaseValue::computeNumbers(val1, val2, BaseValue::MulOperation{}); break;
+	case mmDIV: result = BaseValue::computeNumbers(val1, val2, BaseValue::DivOperation{}); break;
 		//case mmPOW: result = pow(val1, val2); break;
 		//case mmROOT: result = pow(val1, 1.0 / val2); break;
 		//case mmSQRT: result = sqrt(val1); break;
-	case mmRAND: result = Rnd(val1, val2); break;
+	case mmRAND: result = BaseValue::computeNumbers(val1, val2, BaseValue::RNDOperation{}); break;
 	default:
 		DIE << "Math mode with index " << HEX(math_mode) << " does not exist!";
 	}
@@ -836,7 +796,7 @@ bool VMCore::typed_COMP(varible* params)
 
 	bool result = false;
 	switch (compare_mode) {
-	case cmEQ: result = (val1 == val2); break;
+	case cmEQ: result = BaseValue::computeNumbers(val1,val2, BaseValue::EQCompOperation{}); break;
 	case cmNEQ: result = (val1 != val2); break;
 	case cmGT: result = (val1 > val2); break;
 	case cmGTE: result = (val1 >= val2); break;

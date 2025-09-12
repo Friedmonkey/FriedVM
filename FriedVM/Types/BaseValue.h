@@ -106,62 +106,44 @@ struct BaseValue
         default: DIE << "Unsupported lhs type";
         }
     }
-    template<typename Operation>
-    static BaseValue* compareNumbers(const BaseValue* v1, const BaseValue* v2, Operation op)
-    {
-        switch (v1->type_index) {
-        case vt_uint8_t:  SWITCH_SECOND(vt_bool, uint8_t, op); break;
-        case vt_uint16_t: SWITCH_SECOND(vt_bool, uint16_t, op); break;
-        case vt_uint32_t: SWITCH_SECOND(vt_bool, uint32_t, op); break;
-        case vt_uint64_t: SWITCH_SECOND(vt_bool, uint64_t, op); break;
-        case vt_int8_t:   SWITCH_SECOND(vt_bool, int8_t, op); break;
-        case vt_int16_t:  SWITCH_SECOND(vt_bool, int16_t, op); break;
-        case vt_int32_t:  SWITCH_SECOND(vt_bool, int32_t, op); break;
-        case vt_int64_t:  SWITCH_SECOND(vt_bool, int64_t, op); break;
-        case vt_float_t:  SWITCH_SECOND(vt_bool, float, op); break;
-        case vt_double_t: SWITCH_SECOND(vt_bool, double, op); break;
-        default: DIE << "Unsupported lhs type";
-        }
-    }
 
 
-    static BaseValue* EQCompareNumbers(const BaseValue* v1, const BaseValue* v2)
-    {
-        return compareNumbers(v1, v2, EQCompOperation{});
-    }
     struct EQCompOperation {
         template <typename T1, typename T2>
         BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
-            return makeValue(ret_type, a == b);
+            return makeValue(vt_bool, a == b);
         }
     };
-    static BaseValue* GTCompareNumbers(const BaseValue* v1, const BaseValue* v2)
-    {
-        return compareNumbers(v1, v2, GTCompOperation{});
-    }
+    struct NEQCompOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(vt_bool, a != b);
+        }
+    };
     struct GTCompOperation {
         template <typename T1, typename T2>
         BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
-            return makeValue(ret_type, a > b);
+            return makeValue(vt_bool, a > b);
         }
     };
-
-    static BaseValue* AddNumbers(const BaseValue* v1, const BaseValue* v2)
-    {
-        return computeNumbers(v1, v2, AddOperation{});
-    }
-    static BaseValue* SubNumbers(const BaseValue* v1, const BaseValue* v2)
-    {
-        return computeNumbers(v1, v2, SubOperation{});
-    }
-    static BaseValue* MulNumbers(const BaseValue* v1, const BaseValue* v2)
-    {
-        return computeNumbers(v1, v2, MulOperation{});
-    }
-    static BaseValue* DivNumbers(const BaseValue* v1, const BaseValue* v2)
-    {
-        return computeNumbers(v1, v2, DivOperation{});
-    }
+    struct GTECompOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(vt_bool, a >= b);
+        }
+    };
+    struct LTCompOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(vt_bool, a < b);
+        }
+    };
+    struct LTECompOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            return makeValue(vt_bool, a <= b);
+        }
+    };
 
 
 
@@ -189,6 +171,30 @@ struct BaseValue
             return makeValue(ret_type, a / b);
         }
     };
+
+    struct RNDOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+            using std::is_integral;
+            using R = decltype(a + b); // promote types if needed
+
+            R result;
+
+            if constexpr (is_integral<T1>::value && is_integral<T2>::value) {
+                // integer version
+                result = static_cast<R>(rand() % (b - a + 1) + a); // inclusive
+            }
+            else {
+                // floating point version
+                double da = static_cast<double>(a);
+                double db = static_cast<double>(b);
+                result = static_cast<R>(da + (db - da) * (rand() / (RAND_MAX + 1.0)));
+            }
+
+            return makeValue(ret_type, result);
+        }
+    };
+
 
 
     //static BaseValue* computeMagic(const BaseValue* var1, const BaseValue* var2, std::function<BaseValue* (?, ?)> operation)
