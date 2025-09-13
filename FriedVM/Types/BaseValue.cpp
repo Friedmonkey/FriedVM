@@ -57,7 +57,9 @@ bool BaseValue::isNumber() const {
 
 std::string BaseValue::toString() const
 {
-    return std::string("not implemented lol");
+    BaseValue* strValue = ToString(this);
+    std::string str(reinterpret_cast<char*>(strValue->data), strValue->length);
+    return str;
 }
 
 bool BaseValue::isBoolTrue() const 

@@ -95,6 +95,7 @@ void VMCore::Parse()
 		varible newDefaultVarible = nullptr;
 
 		bool hasConst = var_type->isConst;
+		var_type->isConst = false;
 		if (hasConst)
 			declaredConst = binaryApi.VLQ();
 
@@ -658,6 +659,9 @@ void VMCore::typed_setVar(varible reference, varible newValue) {
 		DIE << "Eror trying to assign to value, cant assign nothing to value (for now)";
 	}
 
+
+	BaseValue::computeNumbers(val1, val2, BaseValue::AddOperation{})
+
 	//if (newValue->type_index != reference->type_index)
 	//{
 	//	DIE << "cant assing diffrent types or smth idk?";
@@ -757,21 +761,22 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	//opcode_lookup[iGET_BUFFER].execute = MAKE_EXECUTE(GET_BUFFER);
 	//opcode_lookup[iPUSH_BUFFER].execute = MAKE_EXECUTE(PUSH_BUFFER);
 	//opcode_lookup[iBUFFER_UTIL].execute = MAKE_EXECUTE(BUFFER_UTIL);
-	//opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(SET_VAR);
+	opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(typed_SET_VAR);
 	//opcode_lookup[iSET_STRUCT].execute = MAKE_EXECUTE(SET_STRUCT);
 	//opcode_lookup[iGET_STRUCT].execute = MAKE_EXECUTE(GET_STRUCT);
 	//opcode_lookup[iCREATE_STRUCT].execute = MAKE_EXECUTE(CREATE_STRUCT);
 
-	//opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(CHECK_STACK);
+	opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(typed_CHECK_STACK);
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_CLEAR_CONSOLE));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_READ));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PRINT));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PRINTLN));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_DUMP));
 
-	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_UNSIGNED));
+	//syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_UNSIGNED));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_SIGNED));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PARSE));
 	//syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_UNSIGNED));
@@ -879,14 +884,14 @@ bool VMCore::typed_NOT(varible* params)
 
 bool VMCore::typed_COMP(varible* params)
 {
-	varible bTrue = BaseValue::makeValue(vt_bool, (uint8_t)1);
-	varible bFalse = BaseValue::makeValue(vt_bool, (uint8_t)0);
+	//varible bTrue = BaseValue::makeValue(vt_bool, (uint8_t)1);
+	//varible bFalse = BaseValue::makeValue(vt_bool, (uint8_t)0);
 
 	uint32_t compare_mode = safe_cast<uint32_t>(params[0]);
-	varible val1 = typed_pop(); 
 	varible val2 = typed_pop();
+	varible val1 = typed_pop(); 
 
-	bool result = false;
+	varible result;
 	switch (compare_mode) {
 	case cmEQ: result = BaseValue::computeNumbers(val1,val2, BaseValue::EQCompOperation{}); break;
 	case cmNEQ: result = BaseValue::computeNumbers(val1, val2, BaseValue::NEQCompOperation{}); break;
@@ -897,10 +902,10 @@ bool VMCore::typed_COMP(varible* params)
 	default:
 		DIE << "Compare mode with index " << HEX(compare_mode) << " does not exist!";
 	}
-	if (result)
-		typed_push(bTrue);
+	if (result->isTruthy())
+		typed_push(constTrue);
 	else
-		typed_push(bFalse);
+		typed_push(constFalse);
 	return true;
 }
 
@@ -913,8 +918,11 @@ bool VMCore::typed_JUMP(varible* params)
 bool VMCore::typed_JUMP_IF(varible* params)
 {
 	if(typed_StackTruthy())
+	{
 		Jump(params[0]);
-	return false; //dont advance the program index
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
 }
 
 bool VMCore::typed_CALL(varible* params)
@@ -926,8 +934,11 @@ bool VMCore::typed_CALL(varible* params)
 bool VMCore::typed_CALL_IF(varible* params)
 {
 	if (typed_StackTruthy())
+	{
 		Call(params[0]);
-	return false; //dont advance the program index
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
 }
 
 bool VMCore::typed_RET(varible* params)
@@ -951,10 +962,20 @@ bool VMCore::typed_EXIT(varible* params)
 	exit(exitCode);
 	return true;
 }
-void VMCore::typed_CHECK_STACK(varible* params)
+bool VMCore::typed_SET_VAR(varible* params)
+{
+	varible var = typed_pop();
+	if (var->isConst)
+		DIE << "Cant assign to const value!";
+	varible value = typed_pop();
+	typed_setVar(var, value);
+	return true;
+}
+bool VMCore::typed_CHECK_STACK(varible* params)
 {
 	bool stackEQ = typed_StackEquals(params[0]);
 	typed_push(BaseValue::makeValue(vt_bool, stackEQ));
+	return true;
 }
 #pragma endregion
 #pragma region Instructions
@@ -1336,6 +1357,13 @@ void VMCore::SYS_PRINT()
 
 	print_raw(var);
 }
+void VMCore::SYS_PRINTLN()
+{
+	varible var = typed_pop();
+
+	print_raw(var);
+	putchar('\n');
+}
 void VMCore::SYS_DUMP()
 {
 	//if (!instance.hasSymbols)
@@ -1357,31 +1385,31 @@ void VMCore::SYS_DUMP()
 
 	delete symbol;
 }
-void VMCore::SYS_TO_STRING_UNSIGNED()
-{
-	// Pop the buffer (where result will be stored)
-	Value result_var = getVar();
-	// Pop the number to convert
-	Value number = getVar();
-
-	// Ensure number length is <= 4
-	if (number.length > 4)
-		DIE << "Number too bige!!1!";
-
-	// Convert the number to string
-	uint32_t num = *reinterpret_cast<uint32_t*>(number.data);
-	std::string result_str = std::to_string(num);
-
-	// Prepare the buffer
-	std::vector<uint8_t> buffer(result_str.begin(), result_str.end());
-	uint32_t length = buffer.size();
-	uint8_t* data = new uint8_t[length];
-	std::copy(buffer.begin(), buffer.end(), data);
-
-	// Store the result in `result_var`
-	Value result(data, length, true);
-	setVar(result_var, result);
-}
+//void VMCore::SYS_TO_STRING_UNSIGNED()
+//{
+//	// Pop the buffer (where result will be stored)
+//	Value result_var = getVar();
+//	// Pop the number to convert
+//	Value number = getVar();
+//
+//	// Ensure number length is <= 4
+//	if (number.length > 4)
+//		DIE << "Number too bige!!1!";
+//
+//	// Convert the number to string
+//	uint32_t num = *reinterpret_cast<uint32_t*>(number.data);
+//	std::string result_str = std::to_string(num);
+//
+//	// Prepare the buffer
+//	std::vector<uint8_t> buffer(result_str.begin(), result_str.end());
+//	uint32_t length = buffer.size();
+//	uint8_t* data = new uint8_t[length];
+//	std::copy(buffer.begin(), buffer.end(), data);
+//
+//	// Store the result in `result_var`
+//	Value result(data, length, true);
+//	setVar(result_var, result);
+//}
 void VMCore::SYS_TO_STRING_SIGNED()
 {
 	// Pop the buffer (where result will be stored)

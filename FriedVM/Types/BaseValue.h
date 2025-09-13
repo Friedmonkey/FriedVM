@@ -352,6 +352,13 @@ struct BaseValue
         return true;
     }
 
+    static BaseValue *zero_cast(BaseValue *input, ValueType newType)
+    {
+        if (!input->isNumber())
+            DIE << "input was not a number";
+        BaseValue::createValue(newType);
+    }
+
     //struct RNDOperation {
     //    template <typename T1, typename T2>
     //    BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {

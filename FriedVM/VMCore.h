@@ -75,7 +75,9 @@ private:
 	bool typed_SYSCALL(varible* params);
 	bool typed_EXIT(varible* params);
 
-	void typed_CHECK_STACK(varible* params);
+	bool typed_SET_VAR(varible* params);
+
+	bool typed_CHECK_STACK(varible* params);
 
 #pragma endregion
 #pragma region Instructions
@@ -128,9 +130,10 @@ private:
 	void SYS_CLEAR_CONSOLE();
 	void SYS_READ();
 	void SYS_PRINT();
+	void SYS_PRINTLN();
 	void SYS_DUMP();
 
-	void SYS_TO_STRING_UNSIGNED();
+	//void SYS_TO_STRING_UNSIGNED();
 	void SYS_TO_STRING_SIGNED();
 	void SYS_PARSE();
 	//void SYS_TO_NUMBER_UNSIGNED();
