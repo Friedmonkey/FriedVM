@@ -5,6 +5,7 @@
 #include "Types.h"
 #include <functional>
 #include <random>
+#include <charconv>
 
 struct BaseValue
 {
@@ -502,13 +503,28 @@ struct BaseValue
 
                 T resultNum = var; //var is the default/fallback value as well!
 
+                if (!parseGenericString(str, result->type_index, resultNum, var))
+                {
+                    DIE << "Unable to parse \"" << str << "\" to a " << result->type_index;
+                }
+                //std::istringstream iss(str);
+                //iss >> resultNum;
+                //if (iss.fail()) {
+                //    // fallback stays in resultNum
+                //}
+
+
 
                 //now we need to do some logic to convert our string to T resultNum
                 //TODO: convert str to resultNum
 
                 result->length = BaseValue::getTypeSize(result->type_index);
                 delete[] result->data;
-                result->data = new uint8_t[result->length]; // or malloc if you want C-style
+                result->data = new uint8_t[result->length];
+
+                std::memcpy(result->data, &resultNum, sizeof(T)); // Copy the raw data
+                //BaseValue::makeValue(result->type_index, resultNum);
+                
                 //and then turn resultNum into a byte array and store it in BaseValue* result
                 //TODO:set/fill result->data with the raw bytes of resultNum
 
@@ -519,6 +535,101 @@ struct BaseValue
             //TODO: copy the data from inputOutputValue and put it in the result like we need
         }
     };
+
+    template<typename T>
+    static bool parseGenericString(const std::string& str, ValueType type_index, T& resultNum, T fallback) {
+        resultNum = fallback; // default/fallback
+
+        switch (type_index) {
+        case vt_uint8_t: {
+            unsigned long tmp;
+            if (std::from_chars(str.data(), str.data() + str.size(), tmp).ec == std::errc())
+                resultNum = static_cast<T>(tmp);
+            break;
+        }
+        case vt_uint16_t: {
+            unsigned long tmp;
+            if (std::from_chars(str.data(), str.data() + str.size(), tmp).ec == std::errc())
+                resultNum = static_cast<T>(tmp);
+            break;
+        }
+        case vt_uint32_t: {
+            uint32_t tmp;
+            if (std::from_chars(str.data(), str.data() + str.size(), tmp).ec == std::errc())
+                resultNum = static_cast<T>(tmp);
+            break;
+        }
+        case vt_uint64_t: {
+            uint64_t tmp;
+            if (std::from_chars(str.data(), str.data() + str.size(), tmp).ec == std::errc())
+                resultNum = static_cast<T>(tmp);
+            break;
+        }
+        case vt_int8_t: {
+            int tmp;
+            if (std::from_chars(str.data(), str.data() + str.size(), tmp).ec == std::errc())
+                resultNum = static_cast<T>(tmp);
+            break;
+        }
+        case vt_int16_t: {
+            int tmp;
+            if (std::from_chars(str.data(), str.data() + str.size(), tmp).ec == std::errc())
+                resultNum = static_cast<T>(tmp);
+            break;
+        }
+        case vt_int32_t: {
+            int32_t tmp;
+            if (std::from_chars(str.data(), str.data() + str.size(), tmp).ec == std::errc())
+                resultNum = static_cast<T>(tmp);
+            break;
+        }
+        case vt_int64_t: {
+            int64_t tmp;
+            if (std::from_chars(str.data(), str.data() + str.size(), tmp).ec == std::errc())
+                resultNum = static_cast<T>(tmp);
+            break;
+        }
+        case vt_float_t: {
+            try {
+                float tmp = std::stof(str);
+                resultNum = static_cast<T>(tmp);
+            }
+            catch (...) {}
+            break;
+        }
+        case vt_double_t: {
+            try {
+                double tmp = std::stod(str);
+                resultNum = static_cast<T>(tmp);
+            }
+            catch (...) {}
+            break;
+        }
+        default:
+            return false;
+        }
+
+        return true;
+    }
+
+    //template<typename T>
+    //static bool try_parse(const std::string& str, T& out) {
+    //    auto* begin = str.data();
+    //    auto* end = str.data() + str.size();
+
+    //    if constexpr (std::is_integral_v<T>) {
+    //        auto [ptr, ec] = std::from_chars(begin, end, out);
+    //        return (ec == std::errc{} && ptr == end);
+    //    }
+    //    else if constexpr (std::is_floating_point_v<T>) {
+    //        // from_chars for float/double only guaranteed in C++17+
+    //        auto [ptr, ec] = std::from_chars(begin, end, out);
+    //        return (ec == std::errc{} && ptr == end);
+    //    }
+    //    else {
+    //        static_assert(!sizeof(T*), "try_parse: unsupported type");
+    //    }
+    //}
 
     static BaseValue* ToString(const BaseValue* var1) 
     {
