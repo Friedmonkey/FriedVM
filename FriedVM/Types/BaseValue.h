@@ -457,7 +457,7 @@ struct BaseValue
         //copy cus its const and we want to keep the origional string intact
         BaseValue* inputOutputString = BaseValue::dupValue(var1);
         BaseValue::ExecuteSingleTypedTemplate(BaseValue::ParseStringTypedFunctor(), result, inputOutputString);
-
+        std::memcpy(result->data, inputOutputString->data, result->length);
         //TODO: write inputOutputString->data to result -> data
     }
     static struct ParseStringTypedFunctor {
