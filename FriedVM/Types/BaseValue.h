@@ -356,7 +356,12 @@ struct BaseValue
     {
         if (!input->isNumber())
             DIE << "input was not a number";
-        BaseValue::createValue(newType);
+        auto val = BaseValue::createValue(newType);
+        FillDefaultValue(val);
+        if (!val->isNumber())
+            DIE << "requested type was not a number";
+        //add our value to zero of the requested type safly casting it
+        return BaseValue::computeNumbers(val, input, BaseValue::AddOperation{});
     }
 
     //struct RNDOperation {

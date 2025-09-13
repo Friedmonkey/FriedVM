@@ -657,36 +657,59 @@ void VMCore::typed_setVar(varible reference, varible newValue) {
 	//new value needs to have data or its kind of worthless
 	if (newValue->data == nullptr) {
 		DIE << "Eror trying to assign to value, cant assign nothing to value (for now)";
+		return;
 	}
 
+	if (reference->isNumber() && newValue->isNumber()) {
+		// cast newValue into reference type safely
+		varible casted = BaseValue::zero_cast(newValue, reference->type_index);
 
-	BaseValue::computeNumbers(val1, val2, BaseValue::AddOperation{})
+		// overwrite existing data
+		std::memcpy(reference->data, casted->data, reference->length);
+		//delete casted; // cleanup temporary
+		return;
+	}
 
-	//if (newValue->type_index != reference->type_index)
-	//{
-	//	DIE << "cant assing diffrent types or smth idk?";
-	//	//this is pretty string can assing string to raw
-	//	//cant assing uint8 to uint32
-	//	//need better typcompatability system
-	//	//either that or just overwrite it lol
-	//}
-	reference->type_index = newValue->type_index;
-
-
-	//delete[]
-	//free(reference->data);
+	if (!(reference->type_index == newValue->type_index))
+		DIE << "incompatible types! trying to assign " << newValue->type_index << " to a " << reference->type_index;
 
 
-	reference->length = newValue->length;
-	//std::memcpy(reference->data, newValue->data, reference->length);
-	reference->data = newValue->data;
+	if (reference->length != newValue->length) //same type but length does not match?
+	{	//we reallocate space of the correct size i guess
+		delete[] reference->data;
+		reference->data = new uint8_t[newValue->length];
+		reference->length = newValue->length;
+	}
+
+	std::memcpy(reference->data, newValue->data, newValue->length);
+
+	//BaseValue::computeNumbers(val1, val2, BaseValue::AddOperation{})
+
+	////if (newValue->type_index != reference->type_index)
+	////{
+	////	DIE << "cant assing diffrent types or smth idk?";
+	////	//this is pretty string can assing string to raw
+	////	//cant assing uint8 to uint32
+	////	//need better typcompatability system
+	////	//either that or just overwrite it lol
+	////}
+	//reference->type_index = newValue->type_index;
 
 
-	//its a refernce so we can use the index
-	//uint32_t index = reference.index;
-	//freeVarible(index);
-	//instance.varibles[index] = newValue.data;
-	//instance.meta[index] = newValue.length;
+	////delete[]
+	////free(reference->data);
+
+
+	//reference->length = newValue->length;
+	////std::memcpy(reference->data, newValue->data, reference->length);
+	//reference->data = newValue->data;
+
+
+	////its a refernce so we can use the index
+	////uint32_t index = reference.index;
+	////freeVarible(index);
+	////instance.varibles[index] = newValue.data;
+	////instance.meta[index] = newValue.length;
 }
 
 void VMCore::Jump(varible offset)
