@@ -46,6 +46,13 @@ struct BaseValue
         return val;
     }
 
+    static BaseValue* makeString(std::string value) {
+        BaseValue* val = new BaseValue(vt_string, getTypeSize(vt_string));
+        val->length = value.length();
+        std::memcpy(val->data, value.data(), val->length); // Copy the raw data
+        return val;
+    }
+
     template<typename T>
     static BaseValue* makeValue(ValueType type, T value) {
         BaseValue* val = new BaseValue(type, getTypeSize(type));
@@ -322,15 +329,6 @@ struct BaseValue
         }
     };
 
-    struct StringParseOperation {
-        template <typename T1, typename T2>
-        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
-
-
-            return makeValue(ret_type, a + b);
-        }
-    };
-
     //struct RNDOperation {
     //    template <typename T1, typename T2>
     //    BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
@@ -448,20 +446,34 @@ struct BaseValue
     //        return a + b;
     //    });
     //}
-    static BaseValue* ParseStringString(const BaseValue* var1, BaseValue* result)
+    static void ParseString(const BaseValue* var1, BaseValue* result)
     {
-        //BaseValue* result = new BaseValue(vt_string, 0);
-        BaseValue::ExecuteSingleTypedTemplate(BaseValue::ParseStringTypedFunctor(), var1, result);
-        return result;
+        if (var1->type_index != vt_string)
+        {
+            DIE << "cant parse non string!";
+        }
+        
+        //copy cus its const and we want to keep the origional string intact
+        BaseValue* inputOutputString = BaseValue::dupValue(var1);
+        BaseValue::ExecuteSingleTypedTemplate(BaseValue::ParseStringTypedFunctor(), result, inputOutputString);
+
+        //TODO: write inputOutputString->data to result -> data
     }
     static struct ParseStringTypedFunctor {
         template <typename T>
-        void operator()(const BaseValue* v1, BaseValue* outsideResult) const {
+        void operator()(const BaseValue* typeValue, BaseValue* inputOutputString) const {
             //outsideResult will have the TARGET type and a fallback value
             //v1 will be a string
             //TODO: check vt.type_index for vt_string
 
             //we need to convert these and swap and mangle them a bit to get what we need:
+            //instead of mangeling we're better off making a new value 
+            // because we dont want to mess up the existing underlying string
+
+            //we duplicate the string because we do not wanna mess up the origional string
+            //we smuggle the type index of our output
+            //BaseValue *inputOutputValue = BaseValue::dupValue(v1);
+            //inputOutputValue->type_index = outsideResult->type_index;
             
             //v1->data = outsideResult->data;
             //outsideResult->data = v1->data;
@@ -476,14 +488,16 @@ struct BaseValue
             //BaseValue* result - will be the input string (we smuggle it)
             //BaseValue* result - will also be the output of the T var (we overwrite its data [and length])
 
-            HandleSingleTyped<T>(outsideResult, *v1, [](T var, BaseValue* result) {
+            //we gotta know the type_index so we smuggle it (inputOutputString is a string so we dont need to know its type)
+            inputOutputString->type_index = typeValue->type_index;
 
+            HandleSingleTyped<T>(inputOutputString, *typeValue, [](T var, BaseValue* result) {
                 //T will be the target type
                 //result.type_index will be the correct type index for our requested type
                 //despite that result->data will just the the input string (we smuggle it)
                 //result->length will be correct too
                 std::string str;
-                std::memcpy(str, result->data, result->length);
+                std::memcpy(str.data(), result->data, result->length);
                 //we stored our string so we can now remove data and length and fix them for our type_index
 
                 T resultNum = var; //var is the default/fallback value as well!
@@ -500,6 +514,9 @@ struct BaseValue
 
 
             });
+
+
+            //TODO: copy the data from inputOutputValue and put it in the result like we need
         }
     };
 

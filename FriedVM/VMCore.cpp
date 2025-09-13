@@ -5,6 +5,28 @@
 
 void VMCore::Parse()
 {
+	float value = 0;
+	varible var1 = BaseValue::makeValue(vt_float_t, value);
+
+
+	std::string text = "10.5";
+	varible str = BaseValue::makeString(text);
+
+	BaseValue::ParseString(str, var1);
+
+	float output = safe_cast<float>(var1);
+
+	///	declare float converted;
+	///	push converted
+	/// push string "10.5" //or from user input
+	/// syscall parse
+
+	// converted is now 10.5
+	// if our input string was "bad input" or not a number
+	// then it would not convert and converted would just not be set
+	// so if u want default value then just initialize converted to whatever value u want as fallback
+
+
 	//float value = 20.0;
 	//varible var1 = BaseValue::makeValue(vt_float_t, value);
 
