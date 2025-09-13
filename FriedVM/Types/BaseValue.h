@@ -322,6 +322,15 @@ struct BaseValue
         }
     };
 
+    struct StringParseOperation {
+        template <typename T1, typename T2>
+        BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
+
+
+            return makeValue(ret_type, a + b);
+        }
+    };
+
     //struct RNDOperation {
     //    template <typename T1, typename T2>
     //    BaseValue* operator()(ValueType ret_type, T1 a, T2 b) const {
@@ -430,17 +439,7 @@ struct BaseValue
     //    //return resultVal;
     //}
 
-    template<typename T>
-    static void HandleSingleTyped(BaseValue *result, const BaseValue& v1, std::function<void(T, BaseValue*)> operation) {
-        if (sizeof(T) != getTypeSize(v1.type_index)) {
-            DIE << "Size mismatch between T and BaseValue type";
-        }
-        T* data1 = reinterpret_cast<T*>(v1.data);
 
-        operation(*data1, result);
-
-        //return makeValue<T>(v1.type_index, result);
-    }
 
     //template<typename T>
     //static BaseValue AddTyped(const BaseValue& v1, const BaseValue& v2)
@@ -449,6 +448,67 @@ struct BaseValue
     //        return a + b;
     //    });
     //}
+    static BaseValue* ParseStringString(const BaseValue* var1, BaseValue* result)
+    {
+        //BaseValue* result = new BaseValue(vt_string, 0);
+        BaseValue::ExecuteSingleTypedTemplate(BaseValue::ParseStringTypedFunctor(), var1, result);
+        return result;
+    }
+    static struct ParseStringTypedFunctor {
+        template <typename T>
+        void operator()(const BaseValue* v1, BaseValue* outsideResult) const {
+            //outsideResult will have the TARGET type and a fallback value
+            //v1 will be a string
+            //TODO: check vt.type_index for vt_string
+
+            //we need to convert these and swap and mangle them a bit to get what we need:
+            
+            //v1->data = outsideResult->data;
+            //outsideResult->data = v1->data;
+            // 
+            //v1->length = outsideResult->length;
+            //outsideResult->length = v1->length;
+            //TODO: swap v1 and outsideResult's data array and length (prob using temp value)
+
+
+            // if we did all this then:
+            //T var - will be the outsideResult (basivly we use it to get the type and a fallback value)
+            //BaseValue* result - will be the input string (we smuggle it)
+            //BaseValue* result - will also be the output of the T var (we overwrite its data [and length])
+
+            HandleSingleTyped<T>(outsideResult, *v1, [](T var, BaseValue* result) {
+
+                //T will be the target type
+                //result.type_index will be the correct type index for our requested type
+                //despite that result->data will just the the input string (we smuggle it)
+                //result->length will be correct too
+                std::string str;
+                std::memcpy(str, result->data, result->length);
+                //we stored our string so we can now remove data and length and fix them for our type_index
+
+                T resultNum = var; //var is the default/fallback value as well!
+
+
+                //now we need to do some logic to convert our string to T resultNum
+                //TODO: convert str to resultNum
+
+                result->length = BaseValue::getTypeSize(result->type_index);
+                delete[] result->data;
+                result->data = new uint8_t[result->length]; // or malloc if you want C-style
+                //and then turn resultNum into a byte array and store it in BaseValue* result
+                //TODO:set/fill result->data with the raw bytes of resultNum
+
+
+            });
+        }
+    };
+
+    static BaseValue* ToString(const BaseValue* var1) 
+    {
+        BaseValue* result = new BaseValue(vt_string, 0);
+        BaseValue::ExecuteSingleTypedTemplate(BaseValue::ToStringTypedFunctor(), var1, result);
+        return result;
+    }
     static struct ToStringTypedFunctor {
         template <typename T>
         void operator()(const BaseValue* v1, BaseValue* outsideResult) const {
@@ -464,13 +524,17 @@ struct BaseValue
         }
     };
 
-    static BaseValue* ToString(const BaseValue* var1) 
-    {
-        BaseValue* result = new BaseValue(vt_string, 0);
-        BaseValue::ExecuteSingleTypedTemplate(BaseValue::ToStringTypedFunctor(), var1, result);
-        return result;
-    }
+    template<typename T>
+    static void HandleSingleTyped(BaseValue* result, const BaseValue& v1, std::function<void(T, BaseValue*)> operation) {
+        if (sizeof(T) != getTypeSize(v1.type_index)) {
+            DIE << "Size mismatch between T and BaseValue type";
+        }
+        T* data1 = reinterpret_cast<T*>(v1.data);
 
+        operation(*data1, result);
+
+        //return makeValue<T>(v1.type_index, result);
+    }
     template <typename Func>
     static BaseValue* ExecuteSingleTypedTemplate(Func func, const BaseValue* v1, BaseValue *result) {
         if (!v1) {
@@ -490,6 +554,7 @@ struct BaseValue
         case vt_int64_t:   func.template operator()<int64_t>(v1, result); break;
         case vt_float_t:   func.template operator()<float>(v1, result); break;
         case vt_double_t:  func.template operator()<double>(v1, result); break;
+        //case vt_string:  func.template operator()<std::string>(v1, result); break;
         default:
             DIE << "Unsupported type in ExecuteTyped";
         }
