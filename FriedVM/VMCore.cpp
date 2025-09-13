@@ -5,26 +5,26 @@
 
 void VMCore::Parse()
 {
-	float value = 0;
-	varible var1 = BaseValue::makeValue(vt_float_t, value);
+	//float value = 0;
+	//varible var1 = BaseValue::makeValue(vt_float_t, value);
 
 
-	std::string text = "10.5";
-	varible str = BaseValue::makeString(text);
+	//std::string text = "10.5";
+	//varible str = BaseValue::makeString(text);
 
-	BaseValue::ParseString(str, var1);
+	//BaseValue::ParseString(str, var1);
 
-	float output = safe_cast<float>(var1);
+	//float output = safe_cast<float>(var1);
 
-	///	declare float converted;
-	///	push converted
-	/// push string "10.5" //or from user input
-	/// syscall parse
+	/////	declare float converted;
+	/////	push converted
+	///// push string "10.5" //or from user input
+	///// syscall parse
 
-	// converted is now 10.5
-	// if our input string was "bad input" or not a number
-	// then it would not convert and converted would just not be set
-	// so if u want default value then just initialize converted to whatever value u want as fallback
+	//// converted is now 10.5
+	//// if our input string was "bad input" or not a number
+	//// then it would not convert and converted would just not be set
+	//// so if u want default value then just initialize converted to whatever value u want as fallback
 
 
 	//float value = 20.0;
@@ -611,8 +611,10 @@ void VMCore::typed_setVar(varible reference, varible newValue) {
 	//delete[]
 	//free(reference->data);
 
-	reference->data = newValue->data;
+
 	reference->length = newValue->length;
+	//std::memcpy(reference->data, newValue->data, reference->length);
+	reference->data = newValue->data;
 
 
 	//its a refernce so we can use the index
@@ -704,7 +706,8 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_UNSIGNED));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_SIGNED));
-	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_UNSIGNED));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PARSE));
+	//syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_UNSIGNED));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_SIGNED));
 
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_INPUT_MODE_READ));
@@ -1328,29 +1331,37 @@ void VMCore::SYS_TO_STRING_SIGNED()
 	Value result(data, length, true);
 	setVar(result_var, result);
 }
-void VMCore::SYS_TO_NUMBER_UNSIGNED()
+void VMCore::SYS_PARSE()
 {
-	// Pop the string to convert
-	Value str_val = getVar();
+	varible str = typed_pop();
+	varible destination = typed_pop();
+	BaseValue::ParseString(str, destination);
 
-	// Extract the string from the Value
-	std::string str(str_val.data, str_val.data + str_val.length);
-
-	// Convert to unsigned number
-	try
-	{
-		unsigned long num = std::stoul(str);
-		if (num > std::numeric_limits<uint32_t>::max())
-			throw std::out_of_range("Number too large for uint32_t");
-
-		// Push the result as uint32_t
-		push(static_cast<uint32_t>(num));
-	}
-	catch (const std::exception& e)
-	{
-		DIE << "Invalid unsigned integer string: " << str << ", error: " << e.what();
-	}
+	auto idk = safe_cast<int>(destination);
 }
+//void VMCore::SYS_TO_NUMBER_UNSIGNED()
+//{
+//	// Pop the string to convert
+//	Value str_val = getVar();
+//
+//	// Extract the string from the Value
+//	std::string str(str_val.data, str_val.data + str_val.length);
+//
+//	// Convert to unsigned number
+//	try
+//	{
+//		unsigned long num = std::stoul(str);
+//		if (num > std::numeric_limits<uint32_t>::max())
+//			throw std::out_of_range("Number too large for uint32_t");
+//
+//		// Push the result as uint32_t
+//		push(static_cast<uint32_t>(num));
+//	}
+//	catch (const std::exception& e)
+//	{
+//		DIE << "Invalid unsigned integer string: " << str << ", error: " << e.what();
+//	}
+//}
 void VMCore::SYS_TO_NUMBER_SIGNED()
 {
 	// Pop the string to convert

@@ -497,8 +497,11 @@ struct BaseValue
                 //result.type_index will be the correct type index for our requested type
                 //despite that result->data will just the the input string (we smuggle it)
                 //result->length will be correct too
-                std::string str;
-                std::memcpy(str.data(), result->data, result->length);
+                //std::string str;
+                //std::memcpy(str.data(), result->data, result->length);
+
+                std::string str(reinterpret_cast<char*>(result->data), result->length);
+
                 //we stored our string so we can now remove data and length and fix them for our type_index
 
                 T resultNum = var; //var is the default/fallback value as well!
@@ -539,6 +542,11 @@ struct BaseValue
     template<typename T>
     static bool parseGenericString(const std::string& str, ValueType type_index, T& resultNum, T fallback) {
         resultNum = fallback; // default/fallback
+
+        std::stringstream ss{};
+        ss << "str: '" << str << "', size: " << str.size() << "\n";
+
+
 
         switch (type_index) {
         case vt_uint8_t: {

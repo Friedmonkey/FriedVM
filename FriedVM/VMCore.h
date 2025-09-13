@@ -124,7 +124,8 @@ private:
 
 	void SYS_TO_STRING_UNSIGNED();
 	void SYS_TO_STRING_SIGNED();
-	void SYS_TO_NUMBER_UNSIGNED();
+	void SYS_PARSE();
+	//void SYS_TO_NUMBER_UNSIGNED();
 	void SYS_TO_NUMBER_SIGNED();
 
 	void SYS_INPUT_MODE_READ();
