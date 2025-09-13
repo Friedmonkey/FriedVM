@@ -11,11 +11,16 @@ public:
 	VMCore(VMInstance& newInstance);
 	void Parse();
 	void Run(uint64_t start, uint64_t end);
+	bool typed_Peek_stack(varible* output, int offset = 0);
 	bool Peek_stack(uint32_t *pValue, int offset = 0);
+	bool typed_StackTruthy();
+	bool typed_StackEquals(varible param_value);
 	bool StackEquals(Value& param_value);
 private:
 	FBinary binaryApi;
 	InputManager inputManager;
+	varible constTrue;
+	varible constFalse;
 
 	varible typed_pop();
 	void typed_push(varible value);
@@ -69,6 +74,9 @@ private:
 
 	bool typed_SYSCALL(varible* params);
 	bool typed_EXIT(varible* params);
+
+	void typed_CHECK_STACK(varible* params);
+
 #pragma endregion
 #pragma region Instructions
 	void PUSH(uint32_t* params, bool immediate, uint8_t arg_size);

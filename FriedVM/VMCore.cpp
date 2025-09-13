@@ -63,12 +63,34 @@ void VMCore::Parse()
 	}
 	uint64_t totalLength = instance.constPoolStart;
 #pragma region Declares & Symbols
+	instance.typed_varibles.push_back(constFalse);
+	instance.typed_varibles.push_back(constTrue);
+
 	std::vector<uint8_t> complex_buffer;
 	while(instance.pc < instance.instructionStart) //declare section
 	{
 		varible var_type = binaryApi.ParseTypeByte(complex_buffer);
 		uint64_t declaredDefault = binaryApi.VLQ();
 		uint64_t declaredValue = binaryApi.VLQ();
+
+		if (var_type->type_index == vt_bool)
+		{
+			for (size_t i = 0; i < declaredDefault; i++)
+			{
+				varible newVarible = BaseValue::makeValue(vt_bool, false);
+				instance.typed_varibles.push_back(newVarible);
+				newVarible->rest = instance.typed_varibles.size();
+			}
+			for (size_t i = 0; i < declaredValue; i++)
+			{
+				varible newVarible = BaseValue::makeValue(vt_bool, true);
+				instance.typed_varibles.push_back(newVarible);
+				newVarible->rest = instance.typed_varibles.size();
+			}
+			delete var_type;
+			continue;
+		}
+
 		uint64_t declaredConst = 0;
 		varible newDefaultVarible = nullptr;
 
@@ -165,6 +187,18 @@ void VMCore::Parse()
 	//}
 	if (instance.hasSymbols && instance.pc == instance.instructionStart) //symbol section
 	{
+		std::string constFalseSymbol = "false";
+		uint8_t* falseBuffer = new uint8_t[constFalseSymbol.size()];
+		std::memcpy(falseBuffer, constFalseSymbol.data(), constFalseSymbol.size());
+		instance.symbols.push_back(falseBuffer);
+		instance.symbols_length.push_back(constFalseSymbol.size());
+
+		std::string constTrueSymbol = "true";
+		uint8_t* trueBuffer = new uint8_t[constTrueSymbol.size()];
+		std::memcpy(trueBuffer, constTrueSymbol.data(), constTrueSymbol.size());
+		instance.symbols.push_back(trueBuffer);
+		instance.symbols_length.push_back(constTrueSymbol.size());
+
 		totalLength = symbolsStart;
 		std::vector<uint8_t> symbol_buffer;
 		uint32_t skipped = 0;
@@ -307,6 +341,18 @@ static uint64_t GetVarVLQ(varible var, uint64_t *offset)
 
 	return value;
 }
+bool VMCore::typed_Peek_stack(varible *output, int offset)
+{
+	if (instance.sp == 0)
+	{
+		return false;
+	}
+	else
+	{
+		*output = instance.typed_stack.at(instance.sp - 1);
+		return true;
+	}
+}
 bool VMCore::Peek_stack(uint32_t *pValue, int offset)
 {
 	if (instance.sp == 0)
@@ -318,6 +364,21 @@ bool VMCore::Peek_stack(uint32_t *pValue, int offset)
 		*pValue = instance.stack.at(instance.sp-1);
 		return true;
 	}
+}
+bool VMCore::typed_StackTruthy()
+{
+	varible stack_value;
+	if (!typed_Peek_stack(&stack_value))
+		return false;
+	return stack_value->isTruthy();
+}
+bool VMCore::typed_StackEquals(varible param_value)
+{
+	varible stack_value;
+	if (!typed_Peek_stack(&stack_value))
+		return false;
+
+	return BaseValue::Equals(stack_value, param_value);
 }
 bool VMCore::StackEquals(Value &param_value)
 {
@@ -662,6 +723,12 @@ void VMCore::Return()
 
 VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi(newInstance)
 {
+	constFalse = BaseValue::makeValue(vt_bool, false);
+	constFalse->isConst = true;
+
+	constTrue = BaseValue::makeValue(vt_bool, true);
+	constTrue->isConst = true;
+
 #pragma region Instructions
 	opcode_lookup[iPUSH].execute = MAKE_EXECUTE(typed_PUSH);
 	opcode_lookup[iPOP].execute = MAKE_EXECUTE(typed_POP);
@@ -822,11 +889,11 @@ bool VMCore::typed_COMP(varible* params)
 	bool result = false;
 	switch (compare_mode) {
 	case cmEQ: result = BaseValue::computeNumbers(val1,val2, BaseValue::EQCompOperation{}); break;
-	case cmNEQ: result = (val1 != val2); break;
-	case cmGT: result = (val1 > val2); break;
-	case cmGTE: result = (val1 >= val2); break;
-	case cmLT: result = (val1 < val2); break;
-	case cmLTE: result = (val1 <= val2); break;
+	case cmNEQ: result = BaseValue::computeNumbers(val1, val2, BaseValue::NEQCompOperation{}); break;
+	case cmGT: result = BaseValue::computeNumbers(val1, val2, BaseValue::GTCompOperation{}); break;
+	case cmGTE: result = BaseValue::computeNumbers(val1, val2, BaseValue::GTECompOperation{}); break;
+	case cmLT: result = BaseValue::computeNumbers(val1, val2, BaseValue::LTCompOperation{}); break;
+	case cmLTE: result = BaseValue::computeNumbers(val1, val2, BaseValue::LTECompOperation{}); break;
 	default:
 		DIE << "Compare mode with index " << HEX(compare_mode) << " does not exist!";
 	}
@@ -845,6 +912,8 @@ bool VMCore::typed_JUMP(varible* params)
 
 bool VMCore::typed_JUMP_IF(varible* params)
 {
+	if(typed_StackTruthy())
+		Jump(params[0]);
 	return false; //dont advance the program index
 }
 
@@ -856,6 +925,8 @@ bool VMCore::typed_CALL(varible* params)
 
 bool VMCore::typed_CALL_IF(varible* params)
 {
+	if (typed_StackTruthy())
+		Call(params[0]);
 	return false; //dont advance the program index
 }
 
@@ -879,6 +950,11 @@ bool VMCore::typed_EXIT(varible* params)
 	printf("\n\nExit was called with code: %d\n", exitCode);
 	exit(exitCode);
 	return true;
+}
+void VMCore::typed_CHECK_STACK(varible* params)
+{
+	bool stackEQ = typed_StackEquals(params[0]);
+	typed_push(BaseValue::makeValue(vt_bool, stackEQ));
 }
 #pragma endregion
 #pragma region Instructions

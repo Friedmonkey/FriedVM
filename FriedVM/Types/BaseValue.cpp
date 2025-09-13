@@ -60,7 +60,62 @@ std::string BaseValue::toString() const
     return std::string("not implemented lol");
 }
 
+bool BaseValue::isBoolTrue() const 
+{
+    if (length == 0)
+        return false;
+    if (type_index != vt_bool)
+        DIE << "Not a bool";
 
+    return (data[0]);
+}
+bool BaseValue::isTruthy() const {
+    if (length == 0)
+        return false;
+
+    switch (type_index)
+    {
+    //case vt_raw:
+    //    break;
+    //case vt_string:
+    //    break;
+    //case vt_lazy:
+    //    break;
+    //case vt_label:
+    //    break;
+    //case vt_complex_type:
+    //    break;
+    //case vt_struct:
+    //    break;
+    //case vt_array:
+    //    break;
+    //case vt_pointer:
+    //    break;
+    case vt_bool:
+        return (data[0]);
+    case vt_uint8_t:
+    case vt_uint16_t:
+    case vt_uint32_t:
+    case vt_uint64_t:
+    case vt_int8_t:
+    case vt_int16_t:
+    case vt_int32_t:
+    case vt_int64_t:
+    case vt_float_t:
+    case vt_double_t:
+    {
+        auto True = BaseValue::makeValue(vt_bool, true);
+        auto out = BaseValue::computeNumbers(True, this, EQCompOperation{});
+        if (out->type_index == vt_bool)
+            return (out->data[0]);
+
+        return false;
+    }
+    default:
+        DIE << "Unhandled type for truthy check";
+        break;
+    }
+}
 
 //// The main Add method to dispatch based on type
 //template <typename Func>

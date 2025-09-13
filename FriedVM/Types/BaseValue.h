@@ -193,6 +193,8 @@ struct BaseValue
 
     bool isNumber() const;
     std::string toString() const;
+    bool isBoolTrue() const;
+    bool isTruthy() const;
 
 
     template<typename T1, typename T2, typename Operation>
@@ -329,6 +331,26 @@ struct BaseValue
             return makeValue(ret_type, result);
         }
     };
+
+
+    static bool Equals(BaseValue* v1, BaseValue* v2)
+    {
+        if (v1->isNumber() && v2->isNumber())
+        {
+            BaseValue* out = computeNumbers(v1, v2, EQCompOperation{});
+            return out->isBoolTrue();
+        }
+
+        if (v1->length != v2->length)
+            return false;
+
+        for (size_t i = 0; i < v1->length; i++)
+        {
+            if (v1->data[i] != v2->data[i])
+                return false;
+        }
+        return true;
+    }
 
     //struct RNDOperation {
     //    template <typename T1, typename T2>
