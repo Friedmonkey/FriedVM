@@ -66,9 +66,11 @@ private:
 
 	bool typed_JUMP(varible* params);
 	bool typed_JUMP_IF(varible* params);
+	bool typed_JUMP_IF_STACK(varible* params);
 
 	bool typed_CALL(varible* params);
 	bool typed_CALL_IF(varible* params);
+	bool typed_CALL_IF_STACK(varible* params);
 
 	bool typed_RET(varible* params);
 

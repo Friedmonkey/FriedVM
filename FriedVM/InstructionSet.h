@@ -49,23 +49,32 @@ public:
 #define iNOT		0x06
 #define iCOMP		0x07
 
-#define iJUMP		0x08
-#define iJUMP_IF	0x09
-#define iCALL		0x0A
-#define iCALL_IF	0x0B
-#define iRET		0x0C
-#define iSYSCALL	0x0D
-#define iEXIT		0x0E
+#define iJUMP			0x08
+#define iJUMP_IF		0x09
+#define iJUMP_IF_STACK	0x0A
+#define iCALL			0x0B
+#define iCALL_IF		0x0C
+#define iCALL_IF_STACK	0x0D
 
-#define iSET_BUFFER		0x0F
-#define iGET_BUFFER		0x10
-#define iPUSH_BUFFER	0x11
-#define iBUFFER_UTIL	0x12
-#define iSET_VAR		0x13
-#define iSET_STRUCT		0x14
-#define iGET_STRUCT		0x15
-#define iCREATE_STRUCT  0x16
-#define iCHECK_STACK	0x17
+#define iEXIT			0x0E
+#define iSYSCALL		0x0F
+
+#define iRET			0x10
+
+
+#define iSET_BUFFER		0x11
+#define iGET_BUFFER		0x12
+#define iPUSH_BUFFER	0x13
+
+#define iBUFFER_UTIL	0x14
+
+#define iSET_VAR		0x15
+
+#define iSET_STRUCT		0x16
+#define iGET_STRUCT		0x17
+#define iCREATE_STRUCT  0x18
+
+#define iCHECK_STACK	0x19
 //#define i			0x18
 //#define i			0x19
 //#define i			0x1A

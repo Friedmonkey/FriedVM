@@ -771,9 +771,11 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 
 	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(typed_JUMP);
 	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(typed_JUMP_IF);
+	opcode_lookup[iJUMP_IF_STACK].execute = MAKE_EXECUTE(typed_JUMP_IF_STACK);
 
 	opcode_lookup[iCALL].execute = MAKE_EXECUTE(typed_CALL);
 	opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(typed_CALL_IF);
+	opcode_lookup[iCALL_IF_STACK].execute = MAKE_EXECUTE(typed_CALL_IF_STACK);
 	opcode_lookup[iRET].execute = MAKE_EXECUTE(typed_RET);
 
 	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(typed_SYSCALL);
@@ -940,9 +942,22 @@ bool VMCore::typed_JUMP(varible* params)
 
 bool VMCore::typed_JUMP_IF(varible* params)
 {
-	if(typed_StackTruthy())
+	bool shouldJump = typed_StackTruthy();
+	typed_pop(); //pop the bool we checked
+	if(shouldJump)
 	{
 		Jump(params[0]);
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
+}
+
+bool VMCore::typed_JUMP_IF_STACK(varible* params)
+{
+	bool stackEQ = typed_StackEquals(params[0]);
+	if (stackEQ)
+	{
+		Jump(params[1]);
 		return false; //dont advance the program index
 	}
 	return true; //advance program index
@@ -956,9 +971,22 @@ bool VMCore::typed_CALL(varible* params)
 
 bool VMCore::typed_CALL_IF(varible* params)
 {
-	if (typed_StackTruthy())
+	bool shouldCall = typed_StackTruthy();
+	typed_pop(); //pop the bool we checked
+	if (shouldCall)
 	{
 		Call(params[0]);
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
+}
+
+bool VMCore::typed_CALL_IF_STACK(varible* params)
+{
+	bool stackEQ = typed_StackEquals(params[0]);
+	if (stackEQ)
+	{
+		Call(params[1]);
 		return false; //dont advance the program index
 	}
 	return true; //advance program index
