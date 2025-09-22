@@ -53,10 +53,15 @@ private:
 	void Return();
 #pragma region typed_Instructions
 	bool typed_PUSH(varible* params);
+	bool typed_STORE(varible* params);
 	bool typed_POP(varible* params);
+	bool typed_SWAP(varible* params);
 	bool typed_DUP(varible* params);
 
 	bool typed_MATH(varible* params);
+
+	bool typed_INC(varible* params);
+	bool typed_DEC(varible* params);
 
 	//bool typed_AND(varible* params);
 	//bool typed_OR(varible* params);

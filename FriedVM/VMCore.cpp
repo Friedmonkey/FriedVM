@@ -757,17 +757,23 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	constTrue->isConst = true;
 
 #pragma region Instructions
+	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
+	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(typed_SYSCALL);
+
 	opcode_lookup[iPUSH].execute = MAKE_EXECUTE(typed_PUSH);
+	opcode_lookup[iSTORE].execute = MAKE_EXECUTE(typed_STORE);
+	opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(typed_SET_VAR);
 	opcode_lookup[iPOP].execute = MAKE_EXECUTE(typed_POP);
+	opcode_lookup[iSWAP].execute = MAKE_EXECUTE(typed_SWAP);
 	opcode_lookup[iDUP].execute = MAKE_EXECUTE(typed_DUP);
 
 	opcode_lookup[iMATH].execute = MAKE_EXECUTE(typed_MATH);
-
-	//opcode_lookup[iAND].execute = MAKE_EXECUTE(AND);
-	//opcode_lookup[iOR].execute = MAKE_EXECUTE(OR);
-	opcode_lookup[iNOT].execute = MAKE_EXECUTE(typed_NOT);
+	opcode_lookup[iINC].execute = MAKE_EXECUTE(typed_INC);
+	opcode_lookup[iDEC].execute = MAKE_EXECUTE(typed_DEC);
 
 	opcode_lookup[iCOMP].execute = MAKE_EXECUTE(typed_COMP);
+	opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(typed_CHECK_STACK);
+	opcode_lookup[iNOT].execute = MAKE_EXECUTE(typed_NOT);
 
 	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(typed_JUMP);
 	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(typed_JUMP_IF);
@@ -776,22 +782,20 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iCALL].execute = MAKE_EXECUTE(typed_CALL);
 	opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(typed_CALL_IF);
 	opcode_lookup[iCALL_IF_STACK].execute = MAKE_EXECUTE(typed_CALL_IF_STACK);
+
 	opcode_lookup[iRET].execute = MAKE_EXECUTE(typed_RET);
 
-	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(typed_SYSCALL);
-	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
+
 
 
 	//opcode_lookup[iSET_BUFFER].execute = MAKE_EXECUTE(SET_BUFFER);
-	//opcode_lookup[iGET_BUFFER].execute = MAKE_EXECUTE(GET_BUFFER);
 	//opcode_lookup[iPUSH_BUFFER].execute = MAKE_EXECUTE(PUSH_BUFFER);
+	//opcode_lookup[iGET_BUFFER].execute = MAKE_EXECUTE(GET_BUFFER);
 	//opcode_lookup[iBUFFER_UTIL].execute = MAKE_EXECUTE(BUFFER_UTIL);
-	opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(typed_SET_VAR);
 	//opcode_lookup[iSET_STRUCT].execute = MAKE_EXECUTE(SET_STRUCT);
 	//opcode_lookup[iGET_STRUCT].execute = MAKE_EXECUTE(GET_STRUCT);
 	//opcode_lookup[iCREATE_STRUCT].execute = MAKE_EXECUTE(CREATE_STRUCT);
 
-	opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(typed_CHECK_STACK);
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));
@@ -822,18 +826,48 @@ bool VMCore::typed_PUSH(varible* params)
 	typed_push(params[0]);
 	return true;
 }
+bool VMCore::typed_STORE(varible* params)
+{
+	varible var = params[0];
+	if (var->isConst)
+		DIE << "Cant assign to const value!";
+	varible value = typed_pop();
+	typed_setVar(var, value);
+	return true;
+}
+bool VMCore::typed_SET_VAR(varible* params)
+{
+	varible var = typed_pop();
+	if (var->isConst)
+		DIE << "Cant assign to const value!";
+	varible value = typed_pop();
+	typed_setVar(var, value);
+	return true;
+}
 bool VMCore::typed_POP(varible* params)
 {
 	typed_pop();
 	return true;
 }
+bool VMCore::typed_SWAP(varible* params)
+{
+	if (instance.sp < 2)
+	{
+		DIE << "Nothing on the stack to swap we need 2 values! At program index " << NUM(instance.ProgramIndex);
+	}
+
+	varible topMost = typed_pop();
+	varible secondTopMost = typed_pop();
+
+	typed_push(topMost);
+	typed_push(secondTopMost);
+	return true;
+}
 bool VMCore::typed_DUP(varible* params)
 {
-	uint32_t params0 = safe_cast<uint32_t>(params[0]);
+	uint32_t index = instance.sp - 1;
 
-	uint32_t index = instance.sp - (params0 + 1);
-
-	if (index < 0 || params0 + 1 > instance.sp)
+	if (index < 0 || 1 > instance.sp)
 	{
 		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << NUM(instance.ProgramIndex);
 	}
@@ -876,7 +910,30 @@ bool VMCore::typed_MATH(varible* params)
 	typed_push(result);
 	return true;
 }
+bool VMCore::typed_INC(varible* params)
+{
+	varible var = params[0];
+	if (var->isConst)
+		DIE << "cannot assign to const";
 
+	varible one = BaseValue::makeValue(vt_uint32_t, 1);
+
+	varible result = BaseValue::computeNumbers(var, one, BaseValue::AddOperation{});
+	typed_setVar(var, result);
+	return true;
+}
+bool VMCore::typed_DEC(varible* params)
+{
+	varible var = params[0];
+	if (var->isConst)
+		DIE << "cannot assign to const";
+
+	varible one = BaseValue::makeValue(vt_uint32_t, 1);
+
+	varible result = BaseValue::computeNumbers(var, one, BaseValue::SubOperation{});
+	typed_setVar(var, result);
+	return true;
+}
 //bool VMCore::typed_AND(varible* params)
 //{
 //	varible val2 = typed_pop();
@@ -897,15 +954,7 @@ bool VMCore::typed_MATH(varible* params)
 //	return true;
 //}
 
-bool VMCore::typed_NOT(varible* params)
-{
-	varible bTrue = BaseValue::makeValue(vt_bool, (uint8_t)1);
-	varible bFalse = BaseValue::makeValue(vt_bool, (uint8_t)0);
 
-	varible val1 = typed_pop();
-
-	return true;
-}
 
 bool VMCore::typed_COMP(varible* params)
 {
@@ -934,6 +983,27 @@ bool VMCore::typed_COMP(varible* params)
 	return true;
 }
 
+bool VMCore::typed_CHECK_STACK(varible* params)
+{
+	bool stackEQ = typed_StackEquals(params[0]);
+	if (stackEQ)
+		typed_push(constTrue);
+	else
+		typed_push(constFalse);
+
+	return true;
+}
+bool VMCore::typed_NOT(varible* params)
+{
+	varible val1 = typed_pop();
+	if (val1->isBoolTrue())
+		typed_push(constFalse);
+	else
+		typed_push(constTrue);
+
+	return true;
+}
+
 bool VMCore::typed_JUMP(varible* params)
 {
 	Jump(params[0]);
@@ -942,9 +1012,8 @@ bool VMCore::typed_JUMP(varible* params)
 
 bool VMCore::typed_JUMP_IF(varible* params)
 {
-	bool shouldJump = typed_StackTruthy();
-	typed_pop(); //pop the bool we checked
-	if(shouldJump)
+	varible stackValue = typed_pop();
+	if(stackValue->isTruthy())
 	{
 		Jump(params[0]);
 		return false; //dont advance the program index
@@ -954,8 +1023,8 @@ bool VMCore::typed_JUMP_IF(varible* params)
 
 bool VMCore::typed_JUMP_IF_STACK(varible* params)
 {
-	bool stackEQ = typed_StackEquals(params[0]);
-	if (stackEQ)
+	varible stackValue = typed_pop();
+	if (BaseValue::Equals(stackValue, params[0]))
 	{
 		Jump(params[1]);
 		return false; //dont advance the program index
@@ -971,9 +1040,8 @@ bool VMCore::typed_CALL(varible* params)
 
 bool VMCore::typed_CALL_IF(varible* params)
 {
-	bool shouldCall = typed_StackTruthy();
-	typed_pop(); //pop the bool we checked
-	if (shouldCall)
+	varible stackValue = typed_pop();
+	if (stackValue->isTruthy())
 	{
 		Call(params[0]);
 		return false; //dont advance the program index
@@ -983,8 +1051,8 @@ bool VMCore::typed_CALL_IF(varible* params)
 
 bool VMCore::typed_CALL_IF_STACK(varible* params)
 {
-	bool stackEQ = typed_StackEquals(params[0]);
-	if (stackEQ)
+	varible stackValue = typed_pop();
+	if (BaseValue::Equals(stackValue, params[0]))
 	{
 		Call(params[1]);
 		return false; //dont advance the program index
@@ -1008,24 +1076,9 @@ bool VMCore::typed_SYSCALL(varible* params)
 bool VMCore::typed_EXIT(varible* params)
 {
 	inputManager.setInputModePrinting(); //reset cursor mode
-	int32_t exitCode = safe_cast<int32_t>(typed_pop());
+	int32_t exitCode = safe_cast<int32_t>(params[0]);
 	printf("\n\nExit was called with code: %d\n", exitCode);
 	exit(exitCode);
-	return true;
-}
-bool VMCore::typed_SET_VAR(varible* params)
-{
-	varible var = typed_pop();
-	if (var->isConst)
-		DIE << "Cant assign to const value!";
-	varible value = typed_pop();
-	typed_setVar(var, value);
-	return true;
-}
-bool VMCore::typed_CHECK_STACK(varible* params)
-{
-	bool stackEQ = typed_StackEquals(params[0]);
-	typed_push(BaseValue::makeValue(vt_bool, stackEQ));
 	return true;
 }
 #pragma endregion

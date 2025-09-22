@@ -39,42 +39,48 @@ public:
 	varible* params;
 };
 
+#define iEXIT		0x0E
+#define iSYSCALL	0x0F
 
-#define iPUSH		0x00
-#define iPOP		0x01
-#define iDUP		0x02
-#define iMATH		0x03
-#define iAND		0x04
-#define iOR			0x05
-#define iNOT		0x06
-#define iCOMP		0x07
+#define iPUSH		0x10
+#define iSTORE		0x11
+#define iSET_VAR	0x12
+#define iPOP		0x13
+#define iSWAP		0x14
+#define iDUP		0x15
 
-#define iJUMP			0x08
-#define iJUMP_IF		0x09
-#define iJUMP_IF_STACK	0x0A
-#define iCALL			0x0B
-#define iCALL_IF		0x0C
-#define iCALL_IF_STACK	0x0D
-
-#define iEXIT			0x0E
-#define iSYSCALL		0x0F
-
-#define iRET			0x10
+#define iMATH		0x30
+#define iINC		0x31
+#define iDEC		0x32
 
 
-#define iSET_BUFFER		0x11
-#define iGET_BUFFER		0x12
-#define iPUSH_BUFFER	0x13
+#define iCOMP			0x40
+#define iCHECK_STACK	0x41
+#define iNOT			0x42
 
-#define iBUFFER_UTIL	0x14
+#define iJUMP			0x50
+#define iJUMP_IF		0x51
+#define iJUMP_IF_STACK	0x52
 
-#define iSET_VAR		0x15
+#define iCALL			0x60
+#define iCALL_IF		0x61
+#define iCALL_IF_STACK	0x62
 
-#define iSET_STRUCT		0x16
-#define iGET_STRUCT		0x17
-#define iCREATE_STRUCT  0x18
 
-#define iCHECK_STACK	0x19
+#define iRET			0x6F
+
+
+#define iSET_BUFFER		0xB0
+#define iPUSH_BUFFER	0xB1
+#define iGET_BUFFER		0xB2
+
+#define iBUFFER_UTIL	0xB9
+
+
+#define iSET_STRUCT		0xBA
+#define iGET_STRUCT		0xBB
+#define iCREATE_STRUCT  0xBC
+
 //#define i			0x18
 //#define i			0x19
 //#define i			0x1A
