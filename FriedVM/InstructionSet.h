@@ -5,11 +5,16 @@
 #include <functional>
 #include "VMInstance.h"
 
-#define NULL_INSTRUCTION INSTRUCTION(0, "null", 0)
+#define NOOP_INSTRUCTION INSTRUCTION()
 
 struct INSTRUCTION
 {
 public:
+	INSTRUCTION()
+		: opcode(0), op_name("NOOP"), paramCount(0), execute([](varible*) { return true; })
+	{
+	}
+
 	INSTRUCTION(uint8_t byte, std::string name, uint8_t pcount)
 		:opcode(byte), op_name(name), paramCount(pcount), execute(nullptr)
 	{
@@ -127,6 +132,6 @@ const uint8_t maxParamCount = 2;
 //magic = FXE
 const uint8_t file_magic[] = { 0x46, 0x58, 0x45 };
 const uint8_t symbolSplitCar = 0xBB;
-extern std::vector<INSTRUCTION> opcode_lookup;
+extern std::unordered_map<uint8_t, INSTRUCTION> opcode_lookup;
 extern std::vector<std::function<void()>> syscall_lookup;
 

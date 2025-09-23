@@ -1446,9 +1446,10 @@ void VMCore::SYS_CLEAR_CONSOLE()
 
 void VMCore::SYS_READ()
 {
-	varible buffer = typed_pop();
+	//varible buffer = typed_pop();
 	varible val = read_raw();
-	typed_setVar(buffer, val);
+	//typed_setVar(buffer, val);
+	typed_push(val);
 
 	//Value buffer = getVar(); //put address on stack that we can write to
 	//Value val = read_raw();
@@ -1541,8 +1542,8 @@ void VMCore::SYS_TO_STRING_SIGNED()
 }
 void VMCore::SYS_PARSE()
 {
-	varible str = typed_pop();
 	varible destination = typed_pop();
+	varible str = typed_pop();
 	BaseValue::ParseString(str, destination);
 
 	auto idk = safe_cast<int>(destination);

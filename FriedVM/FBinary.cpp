@@ -51,18 +51,18 @@ INSTRUCTION FBinary::GetInstruction()
 	if (instance.bytecode.size() < instance.pc)
 	{
 		DIE << "file was too small expected more instructions";
-		return NULL_INSTRUCTION;
+		return NOOP_INSTRUCTION;
 	}
 
-	uint8_t hex = instance.bytecode.at(instance.pc);
+	uint8_t opcode = instance.bytecode.at(instance.pc);
 
 	//uint8_t opcode = (hex &		0b11111000) >> 3; // first 5 bits are the opcode shift the 0 so we get the actual value
 	//uint8_t arg_size = ((hex &	0b00000110) >> 1) + 1; // second 2 bits are the size of the argument (1,2,3 or 4 bytes per argument, no 0)
 	//bool immediate = (hex &		0b00000001);      // the last bit is a flag to indicate if the value should be looked up in the const pool
-	uint8_t opcode =   (hex &	0b00011111);			// first 5 bits are the opcode shift the 0 so we get the actual value
+	//uint8_t opcode =   (hex &	0b00011111);			// first 5 bits are the opcode shift the 0 so we get the actual value
 	//uint8_t arg_size = ((hex &	0b01100000) >> 5) + 1;	// second 2 bits are the size of the argument (1,2,3 or 4 bytes per argument, no 0)
 	///bool isAddr =   (hex &	0b10000000) >> 7;		// the last bit is a flag to indicate if the value should be looked up in the const pool
-	if (opcode_lookup.size() >= opcode)
+	if (opcode_lookup.contains(opcode))
 	{
 		instance.pc++;
 		INSTRUCTION instruction = opcode_lookup.at(opcode);
@@ -73,7 +73,7 @@ INSTRUCTION FBinary::GetInstruction()
 	else
 	{
 		DIE << "Encounterd unknown opcode: " << HEX(opcode) << " at position: " << instance.pc << " no instruction found!";
-		return NULL_INSTRUCTION;
+		return NOOP_INSTRUCTION;
 	}
 }
 
