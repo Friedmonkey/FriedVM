@@ -63,9 +63,14 @@ public:
 #define iCHECK_STACK	0x41
 #define iNOT			0x42
 
+
 #define iJUMP			0x50
 #define iJUMP_IF		0x51
 #define iJUMP_IF_STACK	0x52
+
+#define iSET_CASE		0x5A
+#define iSET_CASE_MODE	0x5B
+#define iJUMP_IF_CASE	0x5C
 
 #define iCALL			0x60
 #define iCALL_IF		0x61

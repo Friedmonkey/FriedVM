@@ -22,6 +22,9 @@ private:
 	varible constTrue;
 	varible constFalse;
 
+	uint8_t caseCompareMode = cmEQ;
+	varible caseValue = constFalse;
+
 	varible typed_pop();
 	void typed_push(varible value);
 
@@ -47,31 +50,40 @@ private:
 	Value getVar();
 	void setVar(Value reference, Value newValue);
 	void typed_setVar(varible reference, varible newValue);
+	bool Compare(uint8_t compMode, varible var1, varible var2);
 	void Jump(varible offset);
 	void Jump(uint32_t offset, bool immidiate);
 	void Call(varible offset);
 	void Return();
 #pragma region typed_Instructions
+	bool typed_EXIT(varible* params);
+	bool typed_SYSCALL(varible* params);
+
 	bool typed_PUSH(varible* params);
 	bool typed_STORE(varible* params);
+	bool typed_SET_VAR(varible* params);
 	bool typed_POP(varible* params);
 	bool typed_SWAP(varible* params);
 	bool typed_DUP(varible* params);
 
 	bool typed_MATH(varible* params);
-
 	bool typed_INC(varible* params);
 	bool typed_DEC(varible* params);
 
 	//bool typed_AND(varible* params);
 	//bool typed_OR(varible* params);
-	bool typed_NOT(varible* params);
 		 
 	bool typed_COMP(varible* params);
+	bool typed_CHECK_STACK(varible* params);
+	bool typed_NOT(varible* params);
 
 	bool typed_JUMP(varible* params);
 	bool typed_JUMP_IF(varible* params);
 	bool typed_JUMP_IF_STACK(varible* params);
+
+	bool typed_SET_CASE(varible* params);
+	bool typed_SET_CASE_MODE(varible* params);
+	bool typed_JUMP_IF_CASE(varible* params);
 
 	bool typed_CALL(varible* params);
 	bool typed_CALL_IF(varible* params);
@@ -79,12 +91,8 @@ private:
 
 	bool typed_RET(varible* params);
 
-	bool typed_SYSCALL(varible* params);
-	bool typed_EXIT(varible* params);
 
-	bool typed_SET_VAR(varible* params);
 
-	bool typed_CHECK_STACK(varible* params);
 
 #pragma endregion
 #pragma region Instructions

@@ -711,6 +711,32 @@ void VMCore::typed_setVar(varible reference, varible newValue) {
 	////instance.varibles[index] = newValue.data;
 	////instance.meta[index] = newValue.length;
 }
+bool VMCore::Compare(uint8_t compMode, varible val1, varible val2)
+{
+	if (!(val1->isNumber() && val2->isNumber()))
+	{
+		if (compMode != cmEQ && compMode != cmNEQ)
+			DIE << "unable to compare non-numbers unequally";
+		bool result = BaseValue::Equals(val1, val2);
+		if (compMode == cmNEQ)
+			result = !result;
+
+		return result;
+	}
+	varible result;
+	switch (compMode) {
+	case cmEQ: result = BaseValue::computeNumbers(val1, val2, BaseValue::EQCompOperation{}); break;
+	case cmNEQ: result = BaseValue::computeNumbers(val1, val2, BaseValue::NEQCompOperation{}); break;
+	case cmGT: result = BaseValue::computeNumbers(val1, val2, BaseValue::GTCompOperation{}); break;
+	case cmGTE: result = BaseValue::computeNumbers(val1, val2, BaseValue::GTECompOperation{}); break;
+	case cmLT: result = BaseValue::computeNumbers(val1, val2, BaseValue::LTCompOperation{}); break;
+	case cmLTE: result = BaseValue::computeNumbers(val1, val2, BaseValue::LTECompOperation{}); break;
+	default:
+		DIE << "Compare mode with index " << HEX(compMode) << " does not exist!";
+	}
+
+	return (result->isTruthy());
+}
 
 void VMCore::Jump(varible offset)
 {
@@ -778,6 +804,9 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(typed_JUMP);
 	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(typed_JUMP_IF);
 	opcode_lookup[iJUMP_IF_STACK].execute = MAKE_EXECUTE(typed_JUMP_IF_STACK);
+
+	opcode_lookup[iSET_CASE].execute = MAKE_EXECUTE(typed_SET_CASE);
+	opcode_lookup[iJUMP_IF_CASE].execute = MAKE_EXECUTE(typed_JUMP_IF_CASE);
 
 	opcode_lookup[iCALL].execute = MAKE_EXECUTE(typed_CALL);
 	opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(typed_CALL_IF);
@@ -880,7 +909,7 @@ bool VMCore::typed_MATH(varible* params)
 {
 	varible val1 = 0, val2 = 0;
 
-	uint32_t math_mode = safe_cast<uint32_t>(params[0]);
+	uint8_t math_mode = safe_cast<uint8_t>(params[0]);
 	//uint32_t math_mode = makeUint(params[0], immediate, arg_size);
 
 	// Initialize random engine with a device
@@ -958,25 +987,13 @@ bool VMCore::typed_DEC(varible* params)
 
 bool VMCore::typed_COMP(varible* params)
 {
-	//varible bTrue = BaseValue::makeValue(vt_bool, (uint8_t)1);
-	//varible bFalse = BaseValue::makeValue(vt_bool, (uint8_t)0);
-
-	uint32_t compare_mode = safe_cast<uint32_t>(params[0]);
+	uint8_t compare_mode = safe_cast<uint8_t>(params[0]);
 	varible val2 = typed_pop();
 	varible val1 = typed_pop(); 
 
-	varible result;
-	switch (compare_mode) {
-	case cmEQ: result = BaseValue::computeNumbers(val1,val2, BaseValue::EQCompOperation{}); break;
-	case cmNEQ: result = BaseValue::computeNumbers(val1, val2, BaseValue::NEQCompOperation{}); break;
-	case cmGT: result = BaseValue::computeNumbers(val1, val2, BaseValue::GTCompOperation{}); break;
-	case cmGTE: result = BaseValue::computeNumbers(val1, val2, BaseValue::GTECompOperation{}); break;
-	case cmLT: result = BaseValue::computeNumbers(val1, val2, BaseValue::LTCompOperation{}); break;
-	case cmLTE: result = BaseValue::computeNumbers(val1, val2, BaseValue::LTECompOperation{}); break;
-	default:
-		DIE << "Compare mode with index " << HEX(compare_mode) << " does not exist!";
-	}
-	if (result->isTruthy())
+	bool result = Compare(compare_mode, val1, val2);
+	
+	if (result)
 		typed_push(constTrue);
 	else
 		typed_push(constFalse);
@@ -1025,6 +1042,28 @@ bool VMCore::typed_JUMP_IF_STACK(varible* params)
 {
 	varible stackValue = typed_pop();
 	if (BaseValue::Equals(stackValue, params[0]))
+	{
+		Jump(params[1]);
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
+}
+
+bool VMCore::typed_SET_CASE(varible* params)
+{
+	caseValue = params[0];
+	return true;
+}
+bool VMCore::typed_SET_CASE_MODE(varible* params)
+{
+	caseCompareMode = safe_cast<uint8_t>(params[0]);
+	return true;
+}
+
+bool VMCore::typed_JUMP_IF_CASE(varible* params)
+{
+	bool shouldJump = Compare(caseCompareMode, caseValue, params[0]);
+	if (shouldJump)
 	{
 		Jump(params[1]);
 		return false; //dont advance the program index
