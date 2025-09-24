@@ -490,8 +490,15 @@ varible VMCore::resolveInterpolated(varible interpolated_string)
 	// Concatenate all string parts
 	for (auto& var : composition)
 	{
+		if (var->type_index == vt_interpolated_string)
+		{
+			output.append(resolveInterpolated(var)->toString());
+		}
+		else
+		{
+			output.append(var->toString());
+		}
 		// Assuming var->data is a uint8_t* with string content
-		output.append(var->toString());
 	}
 
 	//if (bake)
