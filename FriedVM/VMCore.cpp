@@ -458,6 +458,11 @@ T VMCore::safe_cast(varible var)
 }
 varible VMCore::resolveInterpolated(varible interpolated_string)
 {
+	//if it is made up of only const strings then there is no point reinterpolating it every time
+	//so if all are const we will bake and basicly overwrite it.
+	//that we set the origional interpolated_string to a normal string of what it's would be
+	bool bake = true; 
+
 	std::vector<varible> composition;
 	composition.reserve(8); // avoid reallocs, tweak as needed
 
@@ -469,6 +474,10 @@ varible VMCore::resolveInterpolated(varible interpolated_string)
 	{
 		auto index = GetVarVLQ(interpolated_string, &offset);
 		varible var = instance.typed_varibles.at(index);
+		if (!var->isConst)
+		{	//we have a mutable string which could change, so we cant bake it anymore
+			bake = false;
+		}
 		
 		composition.push_back(var);
 		totalSize += var->length;
@@ -484,6 +493,15 @@ varible VMCore::resolveInterpolated(varible interpolated_string)
 		// Assuming var->data is a uint8_t* with string content
 		output.append(var->toString());
 	}
+
+	//if (bake)
+	//{
+	//	interpolated_string->type_index = vt_string;
+	//	interpolated_string->length = output.length();
+
+	//	//delete[] interpolated_string->data;
+	//	std::memcpy(interpolated_string->data, output.data(), output.length()); // Copy the raw data
+	//}
 
 	// Return a new runtime string variable
 	return BaseValue::makeString(output);
