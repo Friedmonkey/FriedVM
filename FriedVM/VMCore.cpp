@@ -295,26 +295,71 @@ void VMCore::Run(uint64_t start, uint64_t end)
 	}
 
 
-	while (instance.ProgramIndex < Statements.size())
+	bool fast = false;
+	
+	if (fast)
 	{
-		auto& statement = Statements[instance.ProgramIndex];
+		while (instance.ProgramIndex < Statements.size())
+		{
+			auto& statement = Statements[instance.ProgramIndex];
 
-		bool advanceProgramIndex = statement.Instruction.execute(statement.params);
+			bool advanceProgramIndex = statement.Instruction.execute(statement.params);
 
-		if (advanceProgramIndex)
-			instance.ProgramIndex++;
+			if (advanceProgramIndex)
+				instance.ProgramIndex++;
+		}
+		return;
 	}
-
-
-	instance.ProgramIndex = -1;
-	while (instance.ProgramIndex < Statements.size())
+	else
 	{
-		instance.ProgramIndex++;
-		//do bounds check or something
-		auto& statement = Statements[instance.ProgramIndex];
+		std::vector<varible> execParams;
+		execParams.reserve(maxParamCount);
 
-		statement.Instruction.execute(statement.params);
+		while (instance.ProgramIndex < Statements.size())
+		{
+			auto& statement = Statements[instance.ProgramIndex];
+
+			bool hasInterpolated = false;
+
+			// first check if any param is interpolated
+			for (size_t i = 0; i < statement.Instruction.paramCount; ++i) {
+				if (statement.params[i]->type_index == vt_interpolated_string) {
+					hasInterpolated = true;
+					break;
+				}
+			}
+
+			if (hasInterpolated) {
+				execParams.clear(); // reuse vector
+				for (size_t i = 0; i < statement.Instruction.paramCount; ++i) {
+					auto& p = statement.params[i];
+					if (p->type_index == vt_interpolated_string) {
+						execParams.push_back(resolveInterpolated(p)); // returns a BaseValue* or varible
+					}
+					else {
+						execParams.push_back(p);
+					}
+				}
+				bool advanceProgramIndex = statement.Instruction.execute(execParams.data());
+				if (advanceProgramIndex)
+					instance.ProgramIndex++;
+			}
+			else {
+				bool advanceProgramIndex = statement.Instruction.execute(statement.params);
+				if (advanceProgramIndex)
+					instance.ProgramIndex++;
+			}
+		}
 	}
+	//instance.ProgramIndex = -1;
+	//while (instance.ProgramIndex < Statements.size())
+	//{
+	//	instance.ProgramIndex++;
+	//	//do bounds check or something
+	//	auto& statement = Statements[instance.ProgramIndex];
+
+	//	statement.Instruction.execute(statement.params);
+	//}
 }
 
 static uint64_t GetVarVLQ(varible var, uint64_t *offset)
@@ -329,7 +374,7 @@ static uint64_t GetVarVLQ(varible var, uint64_t *offset)
 		{
 			DIE << "file size was too small (" << NUM(var->length) << "), expected more bytes (" << NUM(*offset + 1) << ")";
 		}
-		byte = var->data[*offset++];
+		byte = var->data[(*offset)++];
 		value |= (uint64_t)(byte & 0x7F) << shift; // Mask out MSB and shift
 		shift += 7;
 
@@ -410,6 +455,55 @@ template<typename T>
 T VMCore::safe_cast(varible var)
 {
 	return BaseValue::getValue<T>(var);
+}
+varible VMCore::resolveInterpolated(varible interpolated_string)
+{
+	std::vector<varible> composition;
+	composition.reserve(8); // avoid reallocs, tweak as needed
+
+	uint64_t offset = 0;
+	auto amount = GetVarVLQ(interpolated_string, &offset);
+
+	uint64_t totalSize = 0;
+	for (size_t i = 0; i < amount; i++)
+	{
+		auto index = GetVarVLQ(interpolated_string, &offset);
+		varible var = instance.typed_varibles.at(index);
+		
+		composition.push_back(var);
+		totalSize += var->length;
+	}
+
+	// Allocate a buffer big enough for the final string
+	std::string output;
+	output.reserve(totalSize);
+
+	// Concatenate all string parts
+	for (auto& var : composition)
+	{
+		// Assuming var->data is a uint8_t* with string content
+		output.append(var->toString());
+	}
+
+	// Return a new runtime string variable
+	return BaseValue::makeString(output);
+
+	//stringstr
+	////uint8_t *data = new uint8_t[size];
+	//for (auto& var : composition)
+	//{
+	//	//memcopy var.data to data but then all behind eachother
+	//	//
+	//	var->data
+	//}
+	//for (size_t i = 0; i < amount; i++)
+	//{
+	//	auto index = GetVarVLQ(interpolated_string, &offset);
+	//	varible var = instance.typed_varibles.at(index);
+	//	size += var->length;
+	//	composition.push_back(var);
+	//}
+	//return interpolated_string;
 }
 varible VMCore::typed_pop()
 {

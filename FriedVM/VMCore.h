@@ -25,6 +25,8 @@ private:
 	uint8_t caseCompareMode = cmEQ;
 	varible caseValue = constFalse;
 
+	varible resolveInterpolated(varible interpolated_string);
+
 	varible typed_pop();
 	void typed_push(varible value);
 

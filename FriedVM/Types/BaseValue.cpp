@@ -6,6 +6,7 @@ size_t BaseValue::getTypeSize(ValueType type) {
     switch (type) {
     case vt_raw: return 0;
     case vt_string: return 0;
+    case vt_interpolated_string: return 0;
     case vt_bool: return 1;
     case vt_uint8_t: return sizeof(uint8_t);
     case vt_uint16_t: return sizeof(uint16_t);
@@ -41,6 +42,7 @@ void BaseValue::FillDefaultValue(BaseValue *value) {
     case vt_double_t: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; break;
     //case vt_pointer: return 4;
     case vt_string: value->data = new uint8_t[0]; break;
+    case vt_interpolated_string: value->data = new uint8_t[0]; break;
     case vt_label: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; break; //default label just points to start of binary
     default: DIE << "unhandled type"; break;
     }
@@ -57,6 +59,11 @@ bool BaseValue::isNumber() const {
 
 std::string BaseValue::toString() const
 {
+    if (type_index == vt_string)
+    {
+        std::string str(reinterpret_cast<char*>(data), length);
+        return str;
+    }
     BaseValue* strValue = ToString(this);
     std::string str(reinterpret_cast<char*>(strValue->data), strValue->length);
     return str;

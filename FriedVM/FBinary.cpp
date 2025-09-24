@@ -221,6 +221,7 @@ uint64_t FBinary::getComplexTypeSize(ValueType type, uint64_t *position) {
 	switch (type) {
 	case vt_raw: return offsetted_VLQ(position);
 	case vt_string: return offsetted_VLQ(position);
+	case vt_interpolated_string: return offsetted_VLQ(position);
 
 	case vt_array: return 0;
 	default: DIE << "complex type size is either not handled yet or not supported for type " << HEX(type);
@@ -349,6 +350,7 @@ bool FBinary::IsComplexType(ValueType vt)
 	switch (vt)
 	{
 	case vt_string:
+	case vt_interpolated_string:
 	case vt_complex_type:
 	case vt_struct:
 	case vt_array:

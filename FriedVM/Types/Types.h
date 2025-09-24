@@ -2,8 +2,9 @@
 
 enum ValueType
 {
-    vt_raw =            0x00,
-    vt_string =         0x01,   //not that complex but it does store its length
+    vt_raw =                    0x00,
+    vt_string =                 0x01,   //not that complex but it does store its length
+    vt_interpolated_string =    0x02,
 
     //complex types
     vt_lazy =           0x0A,   // for lazy values, gets loaded one time lazy<string>

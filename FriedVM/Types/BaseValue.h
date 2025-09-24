@@ -577,11 +577,6 @@ struct BaseValue
     static bool parseGenericString(const std::string& str, ValueType type_index, T& resultNum, T fallback) {
         resultNum = fallback; // default/fallback
 
-        std::stringstream ss{};
-        ss << "str: '" << str << "', size: " << str.size() << "\n";
-
-
-
         switch (type_index) {
         case vt_uint8_t: {
             unsigned long tmp;
@@ -675,6 +670,12 @@ struct BaseValue
 
     static BaseValue* ToString(const BaseValue* var1) 
     {
+        if (var1->type_index == vt_string)
+        {
+            BaseValue* result = new BaseValue(vt_string, var1->length);
+            std::memcpy(result->data, var1->data, var1->length);
+            return result;
+        }
         BaseValue* result = new BaseValue(vt_string, 0);
         BaseValue::ExecuteSingleTypedTemplate(BaseValue::ToStringTypedFunctor(), var1, result);
         return result;
