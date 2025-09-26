@@ -48,8 +48,8 @@ struct BaseValue
     }
 
     static BaseValue* makeString(std::string value) {
-        BaseValue* val = new BaseValue(vt_string, getTypeSize(vt_string));
-        val->length = value.length();
+        BaseValue* val = new BaseValue(vt_string, value.length());
+        //val->length = ;
         std::memcpy(val->data, value.data(), val->length); // Copy the raw data
         return val;
     }

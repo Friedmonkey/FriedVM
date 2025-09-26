@@ -1841,9 +1841,9 @@ varible VMCore::read_raw() {
 	uint32_t length = buffer.size();
 
 
-	BaseValue* result = new BaseValue(vt_string, 0);
-	result->length = length;
-	result->data = new uint8_t[length]; // or malloc if you want C-style
+	BaseValue* result = new BaseValue(vt_string, length);
+	//result->length = length;
+	//result->data = new uint8_t[length]; // or malloc if you want C-style
 	std::copy(buffer.begin(), buffer.end(), result->data);
 	return result;
 	//std::memcpy(result->data, str.data(), result->length);
