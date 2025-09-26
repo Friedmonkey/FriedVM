@@ -467,10 +467,10 @@ varible VMCore::resolveInterpolated(varible interpolated_string)
 	composition.reserve(8); // avoid reallocs, tweak as needed
 
 	uint64_t offset = 0;
-	auto amount = GetVarVLQ(interpolated_string, &offset);
+	//auto amount = GetVarVLQ(interpolated_string, &offset);
 
 	uint64_t totalSize = 0;
-	for (size_t i = 0; i < amount; i++)
+	while (offset < interpolated_string->length) //while there are still vlq's left to read
 	{
 		auto index = GetVarVLQ(interpolated_string, &offset);
 		varible var = instance.typed_varibles.at(index);
