@@ -1,0 +1,96 @@
+fxe binary file format 2025:
+
+VLQ system
+{
+	uint64 result;
+	if (read(1) && 0b1000_000) 
+	//if topmost bit is set, read another byte and acumilate
+	return result
+}
+TypeByte system
+{
+	uint8_t type = read(1); //read one byte
+	//check against type system
+	if (isComplexType(type))
+	{
+		std::vector<uint8_t> extra;
+		if (isArray(type))
+		{
+			uint8_t byte = read(1);
+			while (byte && 0b1000_000)
+				extra.push(byte);
+			//type of array
+			TypeByte(); //recursive
+		}
+		else if (isstruct(type))
+		{
+			idk yet lol
+		}
+	}
+	
+}
+
+layout:
+
+header:
+3 FXE //magic
+1 meta byte (includes symbols?)
+VLQ program start address
+VLQ const pool address
+if (symbols)
+  VLQ symbols address
+
+varibles/types definitions:
+while (pc < program start address)
+{
+
+	//TypeByte, amount with default value, amount with embedded value, amount constant
+	const TypeByte, amount with default value, amount with embedded value
+	TypeByte, amount with default value, amount with embedded value
+}
+
+program start address:
+while (pc < const pool address)
+{
+	1 OPCODE
+	for (OPCODE.argumentCount)
+		VLQ index/address of varible
+}
+e.g.:
+push 50
+push 20
+math sub
+exit
+
+const pool address:
+foreach (i ;; type in types)
+{
+	for (type.amount with default value) //nothing at runtime we know default value for this type
+	for (j ;; type.amount with embedded value + type.amount constant)
+	{
+		vector <uint8_t> data;
+		if (isComplexType(type))
+		{
+			//more shit needed
+			if (isArray(type))
+			{
+				//array stores size using VLQ
+				auto size = VLQ();
+				data.addRange(size);
+				data.addRange(TypeByte());
+			}
+		}
+		else
+		{
+			//we know the size so
+			data = read(type.size)
+		}
+		varibles[i].data = data.toArray(); //we need stdcopy and shit but u get it
+		varibles[i].isConst = (j > amount with embedded value);
+	}
+}
+e.g.:
+4d56456465hello world454744
+
+symbols:
+message>>name>>data>>buffer

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "Logger.h"
 #include <unordered_map>
+#include "Types/BaseValue.h"
 
 struct StructCache {
 	std::vector<uint32_t> offsets;
@@ -11,6 +12,22 @@ struct StructCache {
 	uint32_t total_size = 0;
 	uint8_t *initial_data = 0;
 };
+struct Value
+{
+public:
+	Value(uint8_t* pData, uint32_t mLength, bool mImmediate = true, uint32_t mIndex = 0) : data(pData), length(mLength), immediate(mImmediate), index(mIndex)
+	{
+
+	}
+	uint8_t* data;
+
+	uint32_t length;
+	uint32_t index;
+	bool immediate;
+};
+
+typedef BaseValue* varible;
+
 struct VMInstance
 {
 public:
@@ -27,16 +44,24 @@ public:
 	std::vector<uint8_t*> varibles;
 	uint32_t declare_size = 0;
 
+
+	uint64_t ProgramIndex = 0;
+	std::vector<varible> typed_stack;
+	std::vector<varible> typed_varibles;
+
+
 	std::vector<uint8_t> varible_buffer;
 
 	std::unordered_map<uint32_t, StructCache> structCache;
 
 	uint64_t instructionStart = 0;
+	uint64_t constPoolStart = 0;
 	uint8_t header_size = 8;
 	uint8_t meta_size = 4;
 	uint8_t emptyVar_size = 2;
 	uint8_t version = 1;
 
+	bool compact;
 	bool hasSymbols;
 	std::vector<uint8_t> symbols_length;
 	std::vector<uint8_t*> symbols;

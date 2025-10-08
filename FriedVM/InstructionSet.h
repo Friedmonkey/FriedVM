@@ -3,66 +3,94 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include "VMInstance.h"
 
-#define NULL_INSTRUCTION INSTRUCTION(0, "null", 0)
+#define NOOP_INSTRUCTION INSTRUCTION()
+
 struct INSTRUCTION
 {
 public:
-	INSTRUCTION(uint8_t byte, std::string name, uint8_t pcount)
-		:opcode(byte), op_name(name), paramCount(pcount) 
+	INSTRUCTION()
+		: opcode(0), op_name("NOOP"), paramCount(0), execute([](varible*) { return true; })
 	{
-		execute = nullptr;
-		arg_size = 1;
-		immediate = false;
+	}
+
+	INSTRUCTION(uint8_t byte, std::string name, uint8_t pcount)
+		:opcode(byte), op_name(name), paramCount(pcount), execute(nullptr)
+	{
+		//execute = nullptr;
+		//arg_size = 1;
+		//immediate = false;
 	}
 	const uint8_t opcode;
 	const std::string op_name;
 	const uint8_t paramCount;
-	uint8_t arg_size; // Argument size (0–3)
-	bool immediate;   // Immediate flag
-	std::function<void(uint32_t* params, bool immediate, uint8_t arg_size)> execute;
+	//uint8_t arg_size; // Argument size (0–3)
+	//bool immediate;   // Immediate flag
+	//std::function<void(uint32_t* params, bool immediate, uint8_t arg_size)> execute;
+	std::function<bool(varible *params)> execute;
 	//void (*execute)(uint8_t params[]);
 };
 
-struct Value
+struct Statement
 {
 public:
-	Value(uint8_t *pData, uint32_t mLength, bool mImmediate = true, uint32_t mIndex = 0) : data(pData), length(mLength), immediate(mImmediate), index(mIndex)
+	Statement(const INSTRUCTION& instruction, varible* parameters)
+		: Instruction(instruction), params(parameters)
 	{
-
 	}
-	uint8_t *data;
-	uint32_t length;
-	uint32_t index;
-	bool immediate;
+
+	INSTRUCTION Instruction;
+	varible* params;
 };
 
-#define iPUSH		0x00
-#define iPOP		0x01
-#define iDUP		0x02
-#define iMATH		0x03
-#define iAND		0x04
-#define iOR			0x05
-#define iNOT		0x06
-#define iCOMP		0x07
-
-#define iJUMP		0x08
-#define iJUMP_IF	0x09
-#define iCALL		0x0A
-#define iCALL_IF	0x0B
-#define iRET		0x0C
-#define iSYSCALL	0x0D
 #define iEXIT		0x0E
+#define iSYSCALL	0x0F
 
-#define iSET_BUFFER		0x0F
-#define iGET_BUFFER		0x10
-#define iPUSH_BUFFER	0x11
-#define iBUFFER_UTIL	0x12
-#define iSET_VAR		0x13
-#define iSET_STRUCT		0x14
-#define iGET_STRUCT		0x15
-#define iCREATE_STRUCT  0x16
-#define iCHECK_STACK	0x17
+#define iPUSH		0x10
+#define iSTORE		0x11
+#define iSET_VAR	0x12
+#define iPOP		0x13
+#define iSWAP		0x14
+#define iDUP		0x15
+
+#define iMATH		0x30
+#define iINC		0x31
+#define iDEC		0x32
+
+
+#define iCOMP			0x40
+#define iCHECK_STACK	0x41
+#define iNOT			0x42
+
+
+#define iJUMP			0x50
+#define iJUMP_IF		0x51
+#define iJUMP_IF_STACK	0x52
+
+#define iSET_CASE		0x5A
+#define iSET_CASE_MODE	0x5B
+#define iJUMP_IF_CASE	0x5C
+
+#define iCALL			0x60
+#define iCALL_IF		0x61
+#define iCALL_IF_STACK	0x62
+
+
+#define iRET			0x6F
+
+
+#define iSET_BUFFER		0xB0
+#define iPUSH_BUFFER	0xB1
+#define iGET_BUFFER		0xB2
+
+#define iBUFFER_UTIL	0xB9
+
+
+#define iSET_STRUCT		0xBA
+#define iGET_STRUCT		0xBB
+#define iCREATE_STRUCT  0xBC
+
 //#define i			0x18
 //#define i			0x19
 //#define i			0x1A
@@ -109,6 +137,6 @@ const uint8_t maxParamCount = 2;
 //magic = FXE
 const uint8_t file_magic[] = { 0x46, 0x58, 0x45 };
 const uint8_t symbolSplitCar = 0xBB;
-extern std::vector<INSTRUCTION> opcode_lookup;
+extern std::unordered_map<uint8_t, INSTRUCTION> opcode_lookup;
 extern std::vector<std::function<void()>> syscall_lookup;
 

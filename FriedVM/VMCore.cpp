@@ -5,82 +5,264 @@
 
 void VMCore::Parse()
 {
+	//float value = 0;
+	//varible var1 = BaseValue::makeValue(vt_float_t, value);
+
+
+	//std::string text = "10.5";
+	//varible str = BaseValue::makeString(text);
+
+	//BaseValue::ParseString(str, var1);
+
+	//float output = safe_cast<float>(var1);
+
+	/////	declare float converted;
+	/////	push converted
+	///// push string "10.5" //or from user input
+	///// syscall parse
+
+	//// converted is now 10.5
+	//// if our input string was "bad input" or not a number
+	//// then it would not convert and converted would just not be set
+	//// so if u want default value then just initialize converted to whatever value u want as fallback
+
+
+	//float value = 20.0;
+	//varible var1 = BaseValue::makeValue(vt_float_t, value);
+
+
+	//uint8_t value2 = 20;
+	//varible var2 = BaseValue::makeValue(vt_uint8_t, value2);
+
+
+	//varible var3 = BaseValue::EQCompareNumbers(var1, var2);
+	//bool value3 = safe_cast<bool>(var3);
+	//auto vlqresult = binaryApi.VLQ();
+
+
+	//uint32_t value = 50;
+	//varible var1 = BaseValue::makeValue(vt_uint32_t, value);
+	//
+	//uint32_t value2 = 20;
+	//varible var2 = BaseValue::makeValue(vt_uint32_t, value2);
+	//
+	//varible result = BaseValue::ExecuteTyped(BaseValue::SubTypedFunctor(), var1, var2);
+	////auto result = BaseValue::ExecuteTyped(BaseValue::AddTyped, var1, var2);
+	//
+	//uint32_t castedResult = BaseValue::getValue<uint32_t>(result);
+
+
 	binaryApi.ParseMagic();
-	uint64_t emptyVarCount = binaryApi.ParseEmptyVarCount();
-	instance.instructionStart= binaryApi.ParseAddress();
-	uint64_t constPoolStart = binaryApi.ParseAddress();
+	//uint64_t emptyVarCount = binaryApi.ParseEmptyVarCount();
+	instance.instructionStart = binaryApi.ParseAddress();
+	instance.constPoolStart = binaryApi.ParseAddress();
 	uint64_t symbolsStart = 0;
 	if (instance.hasSymbols)
 	{
 		symbolsStart = binaryApi.ParseAddress();
 	}
-	uint64_t totalLength = 0;
+	uint64_t totalLength = instance.constPoolStart;
 #pragma region Declares & Symbols
+	instance.typed_varibles.push_back(constFalse);
+	instance.typed_varibles.push_back(constTrue);
+
+	std::vector<uint8_t> complex_buffer;
 	while(instance.pc < instance.instructionStart) //declare section
 	{
-		uint64_t length = binaryApi.ParseMeta();
-		auto position = totalLength + constPoolStart;
-		if (instance.bytecode.size() < (position + length))
-		{
-			DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(position + length) << ")";
-		}
-		uint8_t *buffer = new uint8_t[length];
-		for (size_t i = 0; i < length; i++)
-		{
-			buffer[i] = instance.bytecode[position + i];
-		}
-		totalLength += length;
+		varible var_type = binaryApi.ParseTypeByte(complex_buffer);
+		uint64_t declaredDefault = binaryApi.VLQ();
+		uint64_t declaredValue = binaryApi.VLQ();
 
-		instance.meta.push_back(length);
-		instance.varibles.push_back(buffer);
-		instance.declare_size++;
+		if (var_type->type_index == vt_bool)
+		{
+			for (size_t i = 0; i < declaredDefault; i++)
+			{
+				varible newVarible = BaseValue::makeValue(vt_bool, false);
+				instance.typed_varibles.push_back(newVarible);
+				newVarible->rest = instance.typed_varibles.size();
+			}
+			for (size_t i = 0; i < declaredValue; i++)
+			{
+				varible newVarible = BaseValue::makeValue(vt_bool, true);
+				instance.typed_varibles.push_back(newVarible);
+				newVarible->rest = instance.typed_varibles.size();
+			}
+			delete var_type;
+			continue;
+		}
+
+		uint64_t declaredConst = 0;
+		varible newDefaultVarible = nullptr;
+
+		bool hasConst = var_type->isConst;
+		var_type->isConst = false;
+		if (hasConst)
+			declaredConst = binaryApi.VLQ();
+
+		bool useDefault = (hasConst || (declaredDefault > 0));
+		if (useDefault)
+		{
+			newDefaultVarible = BaseValue::dupValue(var_type);
+			BaseValue::FillDefaultValue(newDefaultVarible);
+		}
+
+
+		if (declaredDefault > 0)
+		{
+			for (size_t i = 0; i < declaredDefault; i++)
+			{
+				varible newVarible = BaseValue::dupValue(newDefaultVarible);
+				instance.typed_varibles.push_back(newVarible);
+				newVarible->rest = instance.typed_varibles.size();
+			}
+		}
+		for (size_t i = 0; i < declaredValue; i++)
+		{
+			varible newVarible = BaseValue::dupValue(var_type);
+			binaryApi.FillData(&totalLength, newVarible);
+			/*size_t size = BaseValue::getTypeSize(newVarible->type_index);
+			totalLength += size;
+
+			auto length = newVarible->length + size;
+			uint8_t *buffer = new uint8_t[length];
+			for (size_t i = 0; i < length; i++)
+			{
+				if (i > newVarible->length)
+				{
+					buffer[i] = instance.bytecode[position + i];
+				}
+				else
+				{
+					buffer[i] = newVarible->data[i];
+				}
+			}
+
+			delete[] newVarible->data;
+			newVarible->data = buffer;*/
+			instance.typed_varibles.push_back(newVarible);
+			newVarible->rest = instance.typed_varibles.size();
+		}
+		if (hasConst)
+		{
+			varible newVarible = BaseValue::dupValue(newDefaultVarible);
+			newVarible->isConst = true;
+			instance.typed_varibles.push_back(newVarible);
+			newVarible->rest = instance.typed_varibles.size();
+
+			for (size_t i = 0; i < declaredConst; i++)
+			{
+				varible newVarible = BaseValue::dupValue(var_type);
+				newVarible->isConst = true;
+				binaryApi.FillData(&totalLength, newVarible);
+				instance.typed_varibles.push_back(newVarible);
+				newVarible->rest = instance.typed_varibles.size();
+			}
+		}
+
+		if (useDefault)
+		{
+			delete newDefaultVarible;
+		}
+		delete var_type;
+		////uint8_t type_byte = 
+
+		//if (instance.bytecode.size() < (position + length))
+		//{
+		//	DIE << "file size was too small (" << NUM(instance.bytecode.size()) << "), expected more bytes (" << NUM(position + length) << ")";
+		//}
+		//uint8_t *buffer = new uint8_t[length];
+		//for (size_t i = 0; i < length; i++)
+		//{
+		//	buffer[i] = instance.bytecode[position + i];
+		//}
+
+		//instance.meta.push_back(length);
+		//instance.varibles.push_back(buffer);
+		//instance.declare_size++;
 	}
 	instance.declare_size--; //size not count
-	for (uint64_t i = 0; i < emptyVarCount; i++) //allocate room for empty varibles
-	{
-		instance.meta.push_back(0);
-		instance.varibles.push_back(nullptr);
-	}
+	//for (uint64_t i = 0; i < emptyVarCount; i++) //allocate room for empty varibles
+	//{
+	//	instance.meta.push_back(0);
+	//	instance.varibles.push_back(nullptr);
+	//}
 	if (instance.hasSymbols && instance.pc == instance.instructionStart) //symbol section
 	{
+		std::string constFalseSymbol = "false";
+		uint8_t* falseBuffer = new uint8_t[constFalseSymbol.size()];
+		std::memcpy(falseBuffer, constFalseSymbol.data(), constFalseSymbol.size());
+		instance.symbols.push_back(falseBuffer);
+		instance.symbols_length.push_back(constFalseSymbol.size());
+
+		std::string constTrueSymbol = "true";
+		uint8_t* trueBuffer = new uint8_t[constTrueSymbol.size()];
+		std::memcpy(trueBuffer, constTrueSymbol.data(), constTrueSymbol.size());
+		instance.symbols.push_back(trueBuffer);
+		instance.symbols_length.push_back(constTrueSymbol.size());
+
 		totalLength = symbolsStart;
 		std::vector<uint8_t> symbol_buffer;
+		uint32_t skipped = 0;
 		while (totalLength < instance.bytecode.size())
 		{
 			symbol_buffer.clear();
-			uint8_t length = 0;
-			while(totalLength+length < instance.bytecode.size())
+
+			while (totalLength < instance.bytecode.size())
 			{
-				uint8_t &byte = instance.bytecode.at(totalLength+length);
+				uint8_t byte = instance.bytecode.at(totalLength);
 				bool isNumber = byte >= 0x30 && byte <= 0x39;
 				bool isUppercase = byte >= 0x41 && byte <= 0x5A;
 				bool isLowercase = byte >= 0x61 && byte <= 0x7A;
 				bool isUnderScore = byte == 0x5F;
 
+				// handle special case for underscore at start
+				if (symbol_buffer.empty() && isUnderScore && instance.compact)
+				{
+					totalLength++; //skip the underscore
+					uint64_t amount = binaryApi.offsetted_VLQ(&totalLength);
+					for (size_t i = 0; i < amount; i++)
+					{
+						std::string str = "_" + std::to_string(skipped);
+						uint8_t* buffer = new uint8_t[str.size()];
+						std::memcpy(buffer, str.data(), str.size());
+
+						instance.symbols.push_back(buffer);
+						instance.symbols_length.push_back(str.size());
+						skipped++;
+					}
+					if (instance.bytecode.at(totalLength) != symbolSplitCar)
+						DIE << "Expected an ending character after a compact symbol at program index " << HEX(totalLength);
+					
+					totalLength++; //skip splitChar
+					continue;
+				}
+
 				if (isNumber || isUppercase || isLowercase || isUnderScore)
 				{
 					symbol_buffer.push_back(byte);
-					length++;
+					totalLength++;
 				}
 				else if (byte == symbolSplitCar)
 				{
-					uint8_t* buffer = new uint8_t[length];
-					for (size_t i = 0; i < length; i++)
-					{
-						buffer[i] = instance.bytecode[totalLength + i];
-					}
-					totalLength += length;
-					totalLength++; //split char
+					totalLength++; // consume the split char
+
+					uint8_t* buffer = new uint8_t[symbol_buffer.size()];
+					std::memcpy(buffer, symbol_buffer.data(), symbol_buffer.size());
+
 					instance.symbols.push_back(buffer);
-					instance.symbols_length.push_back(length);
-					break;
+					instance.symbols_length.push_back(symbol_buffer.size());
+
+					break; // done with this symbol
 				}
 				else
 				{
-					DIE << "The symbol at position " << NUM(totalLength) << " has inncorrect char (" << byte << ") at index " << NUM(length);
+					DIE << "The symbol at position " << NUM(totalLength)
+						<< " has incorrect char (" << byte << ") at symbol index "
+						<< NUM(symbol_buffer.size());
 				}
 			}
 		}
+
 	}
 #pragma endregion
 	if (instance.symbols.size() != instance.symbols_length.size())
@@ -88,10 +270,11 @@ void VMCore::Parse()
 	if (instance.varibles.size() != instance.meta.size())
 		DIE << "varible size does not match meta size";
 
-	Run(instance.pc, constPoolStart);
+	Run(instance.pc, instance.constPoolStart);
 }
 void VMCore::Run(uint64_t start, uint64_t end)
 {
+	std::vector<Statement> Statements;
 	instance.pc = start;
 	while (instance.pc < end) //instructions section
 	{
@@ -107,7 +290,113 @@ void VMCore::Run(uint64_t start, uint64_t end)
 		ErrorLogMessage::current_instruction = instruction.op_name;
 
 		auto params = binaryApi.GetParams(instruction);
-		instruction.execute(params, instruction.immediate, instruction.arg_size);
+		
+		Statements.push_back(Statement(instruction, params));
+	}
+
+
+	bool fast = false;
+	
+	if (fast)
+	{
+		while (instance.ProgramIndex < Statements.size())
+		{
+			auto& statement = Statements[instance.ProgramIndex];
+
+			bool advanceProgramIndex = statement.Instruction.execute(statement.params);
+
+			if (advanceProgramIndex)
+				instance.ProgramIndex++;
+		}
+		return;
+	}
+	else
+	{
+		std::vector<varible> execParams;
+		execParams.reserve(maxParamCount);
+
+		while (instance.ProgramIndex < Statements.size())
+		{
+			auto& statement = Statements[instance.ProgramIndex];
+
+			bool hasInterpolated = false;
+
+			// first check if any param is interpolated
+			for (size_t i = 0; i < statement.Instruction.paramCount; ++i) {
+				if (statement.params[i]->type_index == vt_interpolated_string) {
+					hasInterpolated = true;
+					break;
+				}
+			}
+
+			if (hasInterpolated) {
+				execParams.clear(); // reuse vector
+				for (size_t i = 0; i < statement.Instruction.paramCount; ++i) {
+					auto& p = statement.params[i];
+					if (p->type_index == vt_interpolated_string) {
+						execParams.push_back(resolveInterpolated(p)); // returns a BaseValue* or varible
+					}
+					else {
+						execParams.push_back(p);
+					}
+				}
+				bool advanceProgramIndex = statement.Instruction.execute(execParams.data());
+				if (advanceProgramIndex)
+					instance.ProgramIndex++;
+			}
+			else {
+				bool advanceProgramIndex = statement.Instruction.execute(statement.params);
+				if (advanceProgramIndex)
+					instance.ProgramIndex++;
+			}
+		}
+	}
+	//instance.ProgramIndex = -1;
+	//while (instance.ProgramIndex < Statements.size())
+	//{
+	//	instance.ProgramIndex++;
+	//	//do bounds check or something
+	//	auto& statement = Statements[instance.ProgramIndex];
+
+	//	statement.Instruction.execute(statement.params);
+	//}
+}
+
+static uint64_t GetVarVLQ(varible var, uint64_t *offset)
+{
+	uint64_t value = 0;
+	uint8_t shift = 0;
+	uint8_t byte = 0;
+
+	do
+	{
+		if (var->length < (*offset + 1))
+		{
+			DIE << "file size was too small (" << NUM(var->length) << "), expected more bytes (" << NUM(*offset + 1) << ")";
+		}
+		byte = var->data[(*offset)++];
+		value |= (uint64_t)(byte & 0x7F) << shift; // Mask out MSB and shift
+		shift += 7;
+
+		if (shift >= 64) // Prevent overflow
+		{
+			DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
+		}
+
+	} while (byte & 0x80); // Continue if MSB is 1
+
+	return value;
+}
+bool VMCore::typed_Peek_stack(varible *output, int offset)
+{
+	if (instance.sp == 0)
+	{
+		return false;
+	}
+	else
+	{
+		*output = instance.typed_stack.at(instance.sp - 1);
+		return true;
 	}
 }
 bool VMCore::Peek_stack(uint32_t *pValue, int offset)
@@ -121,6 +410,21 @@ bool VMCore::Peek_stack(uint32_t *pValue, int offset)
 		*pValue = instance.stack.at(instance.sp-1);
 		return true;
 	}
+}
+bool VMCore::typed_StackTruthy()
+{
+	varible stack_value;
+	if (!typed_Peek_stack(&stack_value))
+		return false;
+	return stack_value->isTruthy();
+}
+bool VMCore::typed_StackEquals(varible param_value)
+{
+	varible stack_value;
+	if (!typed_Peek_stack(&stack_value))
+		return false;
+
+	return BaseValue::Equals(stack_value, param_value);
 }
 bool VMCore::StackEquals(Value &param_value)
 {
@@ -146,6 +450,107 @@ bool VMCore::StackEquals(Value &param_value)
 	}
 	return false;
 }
+
+template<typename T>
+T VMCore::safe_cast(varible var)
+{
+	return BaseValue::getValue<T>(var);
+}
+varible VMCore::resolveInterpolated(varible interpolated_string)
+{
+	//if it is made up of only const strings then there is no point reinterpolating it every time
+	//so if all are const we will bake and basicly overwrite it.
+	//that we set the origional interpolated_string to a normal string of what it's would be
+	bool bake = true; 
+
+	std::vector<varible> composition;
+	composition.reserve(8); // avoid reallocs, tweak as needed
+
+	uint64_t offset = 0;
+	//auto amount = GetVarVLQ(interpolated_string, &offset);
+
+	uint64_t totalSize = 0;
+	while (offset < interpolated_string->length) //while there are still vlq's left to read
+	{
+		auto index = GetVarVLQ(interpolated_string, &offset);
+		varible var = instance.typed_varibles.at(index);
+		if (!var->isConst)
+		{	//we have a mutable string which could change, so we cant bake it anymore
+			bake = false;
+		}
+		
+		composition.push_back(var);
+		totalSize += var->length;
+	}
+
+	// Allocate a buffer big enough for the final string
+	std::string output;
+	output.reserve(totalSize);
+
+	// Concatenate all string parts
+	for (auto& var : composition)
+	{
+		if (var->type_index == vt_interpolated_string)
+		{
+			output.append(resolveInterpolated(var)->toString());
+		}
+		else
+		{
+			output.append(var->toString());
+		}
+		// Assuming var->data is a uint8_t* with string content
+	}
+
+	//if (bake)
+	//{
+	//	interpolated_string->type_index = vt_string;
+	//	interpolated_string->length = output.length();
+
+	//	//delete[] interpolated_string->data;
+	//	std::memcpy(interpolated_string->data, output.data(), output.length()); // Copy the raw data
+	//}
+
+	// Return a new runtime string variable
+	return BaseValue::makeString(output);
+
+	//stringstr
+	////uint8_t *data = new uint8_t[size];
+	//for (auto& var : composition)
+	//{
+	//	//memcopy var.data to data but then all behind eachother
+	//	//
+	//	var->data
+	//}
+	//for (size_t i = 0; i < amount; i++)
+	//{
+	//	auto index = GetVarVLQ(interpolated_string, &offset);
+	//	varible var = instance.typed_varibles.at(index);
+	//	size += var->length;
+	//	composition.push_back(var);
+	//}
+	//return interpolated_string;
+}
+varible VMCore::typed_pop()
+{
+	if (instance.sp == 0)
+	{
+		DIE << "Nothing on the stack to pop! At program index " << NUM(instance.ProgramIndex);
+	}
+	instance.sp--;
+	varible value = instance.typed_stack.at(instance.sp);
+	instance.typed_stack.pop_back();
+	return value;
+}
+void VMCore::typed_push(varible value)
+{
+	instance.sp++;
+	instance.typed_stack.push_back(value);
+}
+varible VMCore::dup(varible value)
+{
+	return BaseValue::dupValue(value);
+}
+
 void VMCore::freeVarible(uint32_t index)
 {
 	checkVaribleIndex(index);
@@ -160,7 +565,7 @@ uint32_t VMCore::pop()
 {
 	if (instance.sp == 0)
 	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to pop! At program index " << NUM(instance.ProgramIndex);
 	}
 	instance.sp--;
 	uint32_t value = instance.stack.at(instance.sp);
@@ -177,7 +582,7 @@ void VMCore::push(uint32_t value, bool immediate, uint8_t arg_size)
 uint32_t VMCore::buffer_pop()
 {
 	if (instance.varible_buffer.size() == 0)
-		DIE << "Nothing on the buffer to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the buffer to pop! At program index " << NUM(instance.ProgramIndex);
 
 	uint32_t val = instance.varible_buffer.at(instance.varible_buffer.size()-1);
 	instance.varible_buffer.pop_back();
@@ -325,7 +730,7 @@ uint32_t VMCore::getUintVar()
 	bool success = getStackType(&immediate, &arg_size);
 	if (!success)
 	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to pop! At program index " << NUM(instance.ProgramIndex);
 	}
 
 	uint32_t value = pop();
@@ -339,7 +744,7 @@ Value VMCore::getVar()
 	bool success = getStackType(&immediate, &arg_size);
 	if (!success)
 	{
-		DIE << "Nothing on the stack to pop! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to pop! At program index " << NUM(instance.ProgramIndex);
 	}
 
 	uint32_t value = pop();
@@ -362,77 +767,196 @@ void VMCore::setVar(Value reference, Value newValue) {
 	instance.varibles[index] = newValue.data; 
 	instance.meta[index] = newValue.length;
 }
+void VMCore::typed_setVar(varible reference, varible newValue) {
+	//when setting something it needs to be a ref not immidate
+	//if (reference.immediate) {
+	//	DIE << "Cant assign value to immidate!";
+	//}
 
+	//new value needs to have data or its kind of worthless
+	if (newValue->data == nullptr) {
+		DIE << "Eror trying to assign to value, cant assign nothing to value (for now)";
+		return;
+	}
+
+	if (reference->isNumber() && newValue->isNumber()) {
+		// cast newValue into reference type safely
+		varible casted = BaseValue::zero_cast(newValue, reference->type_index);
+
+		// overwrite existing data
+		std::memcpy(reference->data, casted->data, reference->length);
+		//delete casted; // cleanup temporary
+		return;
+	}
+
+	if (!(reference->type_index == newValue->type_index))
+		DIE << "incompatible types! trying to assign " << newValue->type_index << " to a " << reference->type_index;
+
+
+	if (reference->length != newValue->length) //same type but length does not match?
+	{	//we reallocate space of the correct size i guess
+		delete[] reference->data;
+		reference->data = new uint8_t[newValue->length];
+		reference->length = newValue->length;
+	}
+
+	std::memcpy(reference->data, newValue->data, newValue->length);
+
+	//BaseValue::computeNumbers(val1, val2, BaseValue::AddOperation{})
+
+	////if (newValue->type_index != reference->type_index)
+	////{
+	////	DIE << "cant assing diffrent types or smth idk?";
+	////	//this is pretty string can assing string to raw
+	////	//cant assing uint8 to uint32
+	////	//need better typcompatability system
+	////	//either that or just overwrite it lol
+	////}
+	//reference->type_index = newValue->type_index;
+
+
+	////delete[]
+	////free(reference->data);
+
+
+	//reference->length = newValue->length;
+	////std::memcpy(reference->data, newValue->data, reference->length);
+	//reference->data = newValue->data;
+
+
+	////its a refernce so we can use the index
+	////uint32_t index = reference.index;
+	////freeVarible(index);
+	////instance.varibles[index] = newValue.data;
+	////instance.meta[index] = newValue.length;
+}
+bool VMCore::Compare(uint8_t compMode, varible val1, varible val2)
+{
+	if (!(val1->isNumber() && val2->isNumber()))
+	{
+		if (compMode != cmEQ && compMode != cmNEQ)
+			DIE << "unable to compare non-numbers unequally";
+		bool result = BaseValue::Equals(val1, val2);
+		if (compMode == cmNEQ)
+			result = !result;
+
+		return result;
+	}
+	varible result;
+	switch (compMode) {
+	case cmEQ: result = BaseValue::computeNumbers(val1, val2, BaseValue::EQCompOperation{}); break;
+	case cmNEQ: result = BaseValue::computeNumbers(val1, val2, BaseValue::NEQCompOperation{}); break;
+	case cmGT: result = BaseValue::computeNumbers(val1, val2, BaseValue::GTCompOperation{}); break;
+	case cmGTE: result = BaseValue::computeNumbers(val1, val2, BaseValue::GTECompOperation{}); break;
+	case cmLT: result = BaseValue::computeNumbers(val1, val2, BaseValue::LTCompOperation{}); break;
+	case cmLTE: result = BaseValue::computeNumbers(val1, val2, BaseValue::LTECompOperation{}); break;
+	default:
+		DIE << "Compare mode with index " << HEX(compMode) << " does not exist!";
+	}
+
+	return (result->isTruthy());
+}
+
+void VMCore::Jump(varible offset)
+{
+	if (offset->type_index != vt_label)
+		DIE << "Jump expected a label but got type " << HEX(offset->type_index) << " instead";
+
+	uint64_t idx = safe_cast<uint64_t>(offset);
+	instance.ProgramIndex = idx;
+}
 void VMCore::Jump(uint32_t offset, bool immidiate)
 {
 	//if (immediate)
 	//	instance.pc += params[0];
 	//else
-		instance.pc = instance.instructionStart + offset;
+		instance.ProgramIndex = offset;// instance.instructionStart + offset;
 }
-void VMCore::Call(uint32_t offset, bool immidiate)
+void VMCore::Call(varible offset)
 {
-	instance.call_stack.push_back(instance.pc); //keep track of where we are now
-	instance.pc = instance.instructionStart + offset;
+	if (offset->type_index != vt_label)
+		DIE << "Jump expected a label but got type " << HEX(offset->type_index) << " instead";
+
+	uint64_t idx = safe_cast<uint64_t>(offset);
+	instance.call_stack.push_back(instance.ProgramIndex); //keep track of where we are now
+	instance.ProgramIndex = idx;
 }
 void VMCore::Return()
 {
 	if (instance.call_stack.size() == 0)
-		DIE << "Call stack was empty when trying to return At program index " << HEX(instance.pc);
+		DIE << "Call stack was empty when trying to return At program index " << NUM(instance.ProgramIndex);
 
-	instance.pc = instance.call_stack.at(instance.call_stack.size()-1);
+	instance.ProgramIndex = instance.call_stack.at(instance.call_stack.size()-1);
 	instance.call_stack.pop_back();
 }
-#define MAKE_EXECUTE(method) [this](uint32_t* params, bool immediate, uint8_t arg_size) { this->method(params, immediate, arg_size); }
+//#define MAKE_EXECUTE(method) [this](uint32_t* params, bool immediate, uint8_t arg_size) { this->method(params, immediate, arg_size); }
+#define MAKE_EXECUTE(method) [this](varible* params) { return this->method(params); }
 #define MAKE_SYS_EXECUTE(method) [this]() { this->method(); }
 
 VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi(newInstance)
 {
+	constFalse = BaseValue::makeValue(vt_bool, false);
+	constFalse->isConst = true;
+
+	constTrue = BaseValue::makeValue(vt_bool, true);
+	constTrue->isConst = true;
+
 #pragma region Instructions
-	opcode_lookup[iPUSH].execute = MAKE_EXECUTE(PUSH);
-	opcode_lookup[iPOP].execute = MAKE_EXECUTE(POP);
-	opcode_lookup[iDUP].execute = MAKE_EXECUTE(DUP);
+	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(typed_EXIT);
+	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(typed_SYSCALL);
 
-	opcode_lookup[iMATH].execute = MAKE_EXECUTE(MATH);
+	opcode_lookup[iPUSH].execute = MAKE_EXECUTE(typed_PUSH);
+	opcode_lookup[iSTORE].execute = MAKE_EXECUTE(typed_STORE);
+	opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(typed_SET_VAR);
+	opcode_lookup[iPOP].execute = MAKE_EXECUTE(typed_POP);
+	opcode_lookup[iSWAP].execute = MAKE_EXECUTE(typed_SWAP);
+	opcode_lookup[iDUP].execute = MAKE_EXECUTE(typed_DUP);
 
-	opcode_lookup[iAND].execute = MAKE_EXECUTE(AND);
-	opcode_lookup[iOR].execute = MAKE_EXECUTE(OR);
-	opcode_lookup[iNOT].execute = MAKE_EXECUTE(NOT);
+	opcode_lookup[iMATH].execute = MAKE_EXECUTE(typed_MATH);
+	opcode_lookup[iINC].execute = MAKE_EXECUTE(typed_INC);
+	opcode_lookup[iDEC].execute = MAKE_EXECUTE(typed_DEC);
 
-	opcode_lookup[iCOMP].execute = MAKE_EXECUTE(COMP);
+	opcode_lookup[iCOMP].execute = MAKE_EXECUTE(typed_COMP);
+	opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(typed_CHECK_STACK);
+	opcode_lookup[iNOT].execute = MAKE_EXECUTE(typed_NOT);
 
-	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(JUMP);
-	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(JUMP_IF);
+	opcode_lookup[iJUMP].execute = MAKE_EXECUTE(typed_JUMP);
+	opcode_lookup[iJUMP_IF].execute = MAKE_EXECUTE(typed_JUMP_IF);
+	opcode_lookup[iJUMP_IF_STACK].execute = MAKE_EXECUTE(typed_JUMP_IF_STACK);
 
-	opcode_lookup[iCALL].execute = MAKE_EXECUTE(CALL);
-	opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(CALL_IF);
-	opcode_lookup[iRET].execute = MAKE_EXECUTE(RET);
+	opcode_lookup[iSET_CASE].execute = MAKE_EXECUTE(typed_SET_CASE);
+	opcode_lookup[iJUMP_IF_CASE].execute = MAKE_EXECUTE(typed_JUMP_IF_CASE);
 
-	opcode_lookup[iSYSCALL].execute = MAKE_EXECUTE(SYSCALL);
-	opcode_lookup[iEXIT].execute = MAKE_EXECUTE(EXIT);
+	opcode_lookup[iCALL].execute = MAKE_EXECUTE(typed_CALL);
+	opcode_lookup[iCALL_IF].execute = MAKE_EXECUTE(typed_CALL_IF);
+	opcode_lookup[iCALL_IF_STACK].execute = MAKE_EXECUTE(typed_CALL_IF_STACK);
+
+	opcode_lookup[iRET].execute = MAKE_EXECUTE(typed_RET);
 
 
-	opcode_lookup[iSET_BUFFER].execute = MAKE_EXECUTE(SET_BUFFER);
-	opcode_lookup[iGET_BUFFER].execute = MAKE_EXECUTE(GET_BUFFER);
-	opcode_lookup[iPUSH_BUFFER].execute = MAKE_EXECUTE(PUSH_BUFFER);
-	opcode_lookup[iBUFFER_UTIL].execute = MAKE_EXECUTE(BUFFER_UTIL);
-	opcode_lookup[iSET_VAR].execute = MAKE_EXECUTE(SET_VAR);
-	opcode_lookup[iSET_STRUCT].execute = MAKE_EXECUTE(SET_STRUCT);
-	opcode_lookup[iGET_STRUCT].execute = MAKE_EXECUTE(GET_STRUCT);
-	opcode_lookup[iCREATE_STRUCT].execute = MAKE_EXECUTE(CREATE_STRUCT);
 
-	opcode_lookup[iCHECK_STACK].execute = MAKE_EXECUTE(CHECK_STACK);
+
+	//opcode_lookup[iSET_BUFFER].execute = MAKE_EXECUTE(SET_BUFFER);
+	//opcode_lookup[iPUSH_BUFFER].execute = MAKE_EXECUTE(PUSH_BUFFER);
+	//opcode_lookup[iGET_BUFFER].execute = MAKE_EXECUTE(GET_BUFFER);
+	//opcode_lookup[iBUFFER_UTIL].execute = MAKE_EXECUTE(BUFFER_UTIL);
+	//opcode_lookup[iSET_STRUCT].execute = MAKE_EXECUTE(SET_STRUCT);
+	//opcode_lookup[iGET_STRUCT].execute = MAKE_EXECUTE(GET_STRUCT);
+	//opcode_lookup[iCREATE_STRUCT].execute = MAKE_EXECUTE(CREATE_STRUCT);
+
 #pragma endregion
 #pragma region Syscalls
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PAUSE));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_CLEAR_CONSOLE));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_READ));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PRINT));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PRINTLN));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_DUMP));
 
-	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_UNSIGNED));
+	//syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_UNSIGNED));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_STRING_SIGNED));
-	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_UNSIGNED));
+	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_PARSE));
+	//syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_UNSIGNED));
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_TO_NUMBER_SIGNED));
 
 	syscall_lookup.push_back(MAKE_SYS_EXECUTE(SYS_INPUT_MODE_READ));
@@ -444,6 +968,278 @@ VMCore::VMCore(VMInstance& newInstance) : VMInstanceBase(newInstance), binaryApi
 #pragma endregion
 }
 
+#pragma region typed_Instructions
+bool VMCore::typed_PUSH(varible* params)
+{
+	typed_push(params[0]);
+	return true;
+}
+bool VMCore::typed_STORE(varible* params)
+{
+	varible var = params[0];
+	if (var->isConst)
+		DIE << "Cant assign to const value!";
+	varible value = typed_pop();
+	typed_setVar(var, value);
+	return true;
+}
+bool VMCore::typed_SET_VAR(varible* params)
+{
+	varible var = typed_pop();
+	if (var->isConst)
+		DIE << "Cant assign to const value!";
+	varible value = typed_pop();
+	typed_setVar(var, value);
+	return true;
+}
+bool VMCore::typed_POP(varible* params)
+{
+	typed_pop();
+	return true;
+}
+bool VMCore::typed_SWAP(varible* params)
+{
+	if (instance.sp < 2)
+	{
+		DIE << "Nothing on the stack to swap we need 2 values! At program index " << NUM(instance.ProgramIndex);
+	}
+
+	varible topMost = typed_pop();
+	varible secondTopMost = typed_pop();
+
+	typed_push(topMost);
+	typed_push(secondTopMost);
+	return true;
+}
+bool VMCore::typed_DUP(varible* params)
+{
+	uint32_t index = instance.sp - 1;
+
+	if (index < 0 || 1 > instance.sp)
+	{
+		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << NUM(instance.ProgramIndex);
+	}
+
+	varible value = dup(instance.typed_stack.at(index));
+	typed_push(value);
+	return true;
+}
+bool VMCore::typed_MATH(varible* params)
+{
+	varible val1 = 0, val2 = 0;
+
+	uint8_t math_mode = safe_cast<uint8_t>(params[0]);
+	//uint32_t math_mode = makeUint(params[0], immediate, arg_size);
+
+	// Initialize random engine with a device
+
+
+	if (math_mode != mmINC && math_mode != mmDEC)
+		val2 = typed_pop();
+	val1 = typed_pop();
+	//val1 = getUintVar(); // First operand
+	varible result = 0;
+	varible one = BaseValue::makeValue(vt_uint32_t, 1);
+
+	switch (math_mode) {
+	case mmADD: result = BaseValue::computeNumbers(val1, val2, BaseValue::AddOperation{}); break;
+	case mmSUB: result = BaseValue::computeNumbers(val1, val2, BaseValue::SubOperation{}); break;
+	case mmINC: result = BaseValue::computeNumbers(val1, one, BaseValue::AddOperation{}); break;
+	case mmDEC: result = BaseValue::computeNumbers(val1, one, BaseValue::SubOperation{}); break;
+	case mmMUL: result = BaseValue::computeNumbers(val1, val2, BaseValue::MulOperation{}); break;
+	case mmDIV: result = BaseValue::computeNumbers(val1, val2, BaseValue::DivOperation{}); break;
+		//case mmPOW: result = pow(val1, val2); break;
+		//case mmROOT: result = pow(val1, 1.0 / val2); break;
+		//case mmSQRT: result = sqrt(val1); break;
+	case mmRAND: result = BaseValue::computeNumbers(val1, val2, BaseValue::RNDOperation{}); break;
+	default:
+		DIE << "Math mode with index " << HEX(math_mode) << " does not exist!";
+	}
+	typed_push(result);
+	return true;
+}
+bool VMCore::typed_INC(varible* params)
+{
+	varible var = params[0];
+	if (var->isConst)
+		DIE << "cannot assign to const";
+
+	varible one = BaseValue::makeValue(vt_uint32_t, 1);
+
+	varible result = BaseValue::computeNumbers(var, one, BaseValue::AddOperation{});
+	typed_setVar(var, result);
+	return true;
+}
+bool VMCore::typed_DEC(varible* params)
+{
+	varible var = params[0];
+	if (var->isConst)
+		DIE << "cannot assign to const";
+
+	varible one = BaseValue::makeValue(vt_uint32_t, 1);
+
+	varible result = BaseValue::computeNumbers(var, one, BaseValue::SubOperation{});
+	typed_setVar(var, result);
+	return true;
+}
+//bool VMCore::typed_AND(varible* params)
+//{
+//	varible val2 = typed_pop();
+//	varible val1 = typed_pop();
+//
+//	varible result = And(val1, val2);
+//	typed_push(result);
+//	return true;
+//}
+//
+//bool VMCore::typed_OR(varible* params)
+//{
+//	varible val2 = typed_pop();
+//	varible val1 = typed_pop();
+//
+//	varible result = Or(val1, val2);
+//	typed_push(result);
+//	return true;
+//}
+
+
+
+bool VMCore::typed_COMP(varible* params)
+{
+	uint8_t compare_mode = safe_cast<uint8_t>(params[0]);
+	varible val2 = typed_pop();
+	varible val1 = typed_pop(); 
+
+	bool result = Compare(compare_mode, val1, val2);
+	
+	if (result)
+		typed_push(constTrue);
+	else
+		typed_push(constFalse);
+	return true;
+}
+
+bool VMCore::typed_CHECK_STACK(varible* params)
+{
+	bool stackEQ = typed_StackEquals(params[0]);
+	if (stackEQ)
+		typed_push(constTrue);
+	else
+		typed_push(constFalse);
+
+	return true;
+}
+bool VMCore::typed_NOT(varible* params)
+{
+	varible val1 = typed_pop();
+	if (val1->isBoolTrue())
+		typed_push(constFalse);
+	else
+		typed_push(constTrue);
+
+	return true;
+}
+
+bool VMCore::typed_JUMP(varible* params)
+{
+	Jump(params[0]);
+	return false; //dont advance the program index
+}
+
+bool VMCore::typed_JUMP_IF(varible* params)
+{
+	varible stackValue = typed_pop();
+	if(stackValue->isTruthy())
+	{
+		Jump(params[0]);
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
+}
+
+bool VMCore::typed_JUMP_IF_STACK(varible* params)
+{
+	varible stackValue = typed_pop();
+	if (BaseValue::Equals(stackValue, params[0]))
+	{
+		Jump(params[1]);
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
+}
+
+bool VMCore::typed_SET_CASE(varible* params)
+{
+	caseValue = params[0];
+	return true;
+}
+bool VMCore::typed_SET_CASE_MODE(varible* params)
+{
+	caseCompareMode = safe_cast<uint8_t>(params[0]);
+	return true;
+}
+
+bool VMCore::typed_JUMP_IF_CASE(varible* params)
+{
+	bool shouldJump = Compare(caseCompareMode, caseValue, params[0]);
+	if (shouldJump)
+	{
+		Jump(params[1]);
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
+}
+
+bool VMCore::typed_CALL(varible* params)
+{
+	Call(params[0]);
+	return false; //dont advance the program index
+}
+
+bool VMCore::typed_CALL_IF(varible* params)
+{
+	varible stackValue = typed_pop();
+	if (stackValue->isTruthy())
+	{
+		Call(params[0]);
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
+}
+
+bool VMCore::typed_CALL_IF_STACK(varible* params)
+{
+	varible stackValue = typed_pop();
+	if (BaseValue::Equals(stackValue, params[0]))
+	{
+		Call(params[1]);
+		return false; //dont advance the program index
+	}
+	return true; //advance program index
+}
+
+bool VMCore::typed_RET(varible* params)
+{
+	Return();
+	return true; //advance the program index otherwise we end up running the call again or whatever!
+}
+
+bool VMCore::typed_SYSCALL(varible* params)
+{
+	uint32_t idx = safe_cast<uint32_t>(params[0]);
+	syscall(idx);
+	return true;
+}
+
+bool VMCore::typed_EXIT(varible* params)
+{
+	inputManager.setInputModePrinting(); //reset cursor mode
+	int32_t exitCode = safe_cast<int32_t>(params[0]);
+	printf("\n\nExit was called with code: %d\n", exitCode);
+	exit(exitCode);
+	return true;
+}
+#pragma endregion
 #pragma region Instructions
 void VMCore::PUSH(uint32_t* params, bool immediate, uint8_t arg_size)
 {
@@ -459,7 +1255,7 @@ void VMCore::DUP(uint32_t* params, bool immediate, uint8_t arg_size)
 
 	if (index < 0 || params[0] + 1 > instance.sp)
 	{
-		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << HEX(instance.pc);
+		DIE << "Nothing on the stack to duplicate at the index " << NUM(index) << "! At program index " << NUM(instance.ProgramIndex);
 	}
 
 	uint8_t type = instance.stack_type.at(index);
@@ -561,13 +1357,13 @@ void VMCore::JUMP_IF(uint32_t* params, bool immediate, uint8_t arg_size)
 }
 void VMCore::CALL(uint32_t* params, bool immediate, uint8_t arg_size)
 {
-	Call(params[0], immediate);
+	//Call(params[0], immediate);
 }
 void VMCore::CALL_IF(uint32_t* params, bool immediate, uint8_t arg_size)
 {
 	if (getUintVar() == iTRUE)
 	{
-		Call(params[0], immediate);
+		//Call(params[0], immediate);
 	}
 }
 void VMCore::RET(uint32_t* params, bool immediate, uint8_t arg_size)
@@ -794,7 +1590,6 @@ void VMCore::CHECK_STACK(uint32_t* params, bool immediate, uint8_t arg_size)
 //}
 
 #pragma endregion
-
 #pragma region Syscalls
 void VMCore::SYS_PAUSE()
 {
@@ -809,59 +1604,75 @@ void VMCore::SYS_CLEAR_CONSOLE()
 
 void VMCore::SYS_READ()
 {
-	Value buffer = getVar(); //put address on stack that we can write to
-	Value val = read_raw();
-	setVar(buffer, val);
+	//varible buffer = typed_pop();
+	varible val = read_raw();
+	//typed_setVar(buffer, val);
+	typed_push(val);
+
+	//Value buffer = getVar(); //put address on stack that we can write to
+	//Value val = read_raw();
+	//setVar(buffer, val);
 }
 
 void VMCore::SYS_PRINT()
 {
-	Value val = getVar();
-	print_raw(val);
+	varible var = typed_pop();
+
+	print_raw(var);
+}
+void VMCore::SYS_PRINTLN()
+{
+	varible var = typed_pop();
+
+	print_raw(var);
+	putchar('\n');
 }
 void VMCore::SYS_DUMP()
 {
 	//if (!instance.hasSymbols)
 	//	DIE << "Cant dump varible because symbols are not included";
 
-	Value data = getVar();
-	Value symbol = Value(data.data, std::min(data.length, (uint32_t)4)); //if we didnt use a label but imidate value, we just show the start
-	if (!data.immediate && instance.hasSymbols)
+	varible data = typed_pop();
+	varible symbol = new BaseValue(data->type_index, data->data, std::min(data->length, (size_t)4));
+	if (instance.hasSymbols && data->rest != 0) //no symbol
 	{	//if there is a label availible
-		symbol.data = instance.symbols.at(data.index);
-		symbol.length = instance.symbols_length.at(data.index);
+		symbol->type_index = vt_string;
+		symbol->data = instance.symbols.at(data->rest - 1);
+		symbol->length = instance.symbols_length.at(data->rest - 1);
 	}
 	printf("symbol: \"");
 	print_raw(symbol);
 	printf("\" has value: \"");
 	print_raw(data);
 	printf("\".");
+
+	delete symbol;
 }
-void VMCore::SYS_TO_STRING_UNSIGNED()
-{
-	// Pop the buffer (where result will be stored)
-	Value result_var = getVar();
-	// Pop the number to convert
-	Value number = getVar();
-
-	// Ensure number length is <= 4
-	if (number.length > 4)
-		DIE << "Number too bige!!1!";
-
-	// Convert the number to string
-	uint32_t num = *reinterpret_cast<uint32_t*>(number.data);
-	std::string result_str = std::to_string(num);
-
-	// Prepare the buffer
-	std::vector<uint8_t> buffer(result_str.begin(), result_str.end());
-	uint32_t length = buffer.size();
-	uint8_t* data = new uint8_t[length];
-	std::copy(buffer.begin(), buffer.end(), data);
-
-	// Store the result in `result_var`
-	Value result(data, length, true);
-	setVar(result_var, result);
-}
+//void VMCore::SYS_TO_STRING_UNSIGNED()
+//{
+//	// Pop the buffer (where result will be stored)
+//	Value result_var = getVar();
+//	// Pop the number to convert
+//	Value number = getVar();
+//
+//	// Ensure number length is <= 4
+//	if (number.length > 4)
+//		DIE << "Number too bige!!1!";
+//
+//	// Convert the number to string
+//	uint32_t num = *reinterpret_cast<uint32_t*>(number.data);
+//	std::string result_str = std::to_string(num);
+//
+//	// Prepare the buffer
+//	std::vector<uint8_t> buffer(result_str.begin(), result_str.end());
+//	uint32_t length = buffer.size();
+//	uint8_t* data = new uint8_t[length];
+//	std::copy(buffer.begin(), buffer.end(), data);
+//
+//	// Store the result in `result_var`
+//	Value result(data, length, true);
+//	setVar(result_var, result);
+//}
 void VMCore::SYS_TO_STRING_SIGNED()
 {
 	// Pop the buffer (where result will be stored)
@@ -887,29 +1698,37 @@ void VMCore::SYS_TO_STRING_SIGNED()
 	Value result(data, length, true);
 	setVar(result_var, result);
 }
-void VMCore::SYS_TO_NUMBER_UNSIGNED()
+void VMCore::SYS_PARSE()
 {
-	// Pop the string to convert
-	Value str_val = getVar();
+	varible destination = typed_pop();
+	varible str = typed_pop();
+	BaseValue::ParseString(str, destination);
 
-	// Extract the string from the Value
-	std::string str(str_val.data, str_val.data + str_val.length);
-
-	// Convert to unsigned number
-	try
-	{
-		unsigned long num = std::stoul(str);
-		if (num > std::numeric_limits<uint32_t>::max())
-			throw std::out_of_range("Number too large for uint32_t");
-
-		// Push the result as uint32_t
-		push(static_cast<uint32_t>(num));
-	}
-	catch (const std::exception& e)
-	{
-		DIE << "Invalid unsigned integer string: " << str << ", error: " << e.what();
-	}
+	auto idk = safe_cast<int>(destination);
 }
+//void VMCore::SYS_TO_NUMBER_UNSIGNED()
+//{
+//	// Pop the string to convert
+//	Value str_val = getVar();
+//
+//	// Extract the string from the Value
+//	std::string str(str_val.data, str_val.data + str_val.length);
+//
+//	// Convert to unsigned number
+//	try
+//	{
+//		unsigned long num = std::stoul(str);
+//		if (num > std::numeric_limits<uint32_t>::max())
+//			throw std::out_of_range("Number too large for uint32_t");
+//
+//		// Push the result as uint32_t
+//		push(static_cast<uint32_t>(num));
+//	}
+//	catch (const std::exception& e)
+//	{
+//		DIE << "Invalid unsigned integer string: " << str << ", error: " << e.what();
+//	}
+//}
 void VMCore::SYS_TO_NUMBER_SIGNED()
 {
 	// Pop the string to convert
@@ -992,26 +1811,68 @@ void VMCore::print_raw(Value val)
 {
 	print_raw(val.data, val.length);
 }
+void VMCore::print_raw(varible var)
+{
+	if (var->type_index == vt_string) //we have to somehow make it string
+	{
+		print_raw(var->data/*+offset*/, var->length);
+	}
+	else
+	{
+		varible str = BaseValue::ToString(var);
+		print_raw(str->data, str->length);
+		delete str;
+	}
+}
 void VMCore::print_raw(uint8_t* data, uint32_t length) {
 	for (uint32_t i = 0; i < length; ++i)
 		putchar(data[i]);  // Print each byte as a character
 }
-Value VMCore::read_raw() {
+varible VMCore::read_raw() {
 	std::vector<uint8_t> buffer;
 	int value = getchar();
 
-	while(value >= ' ' && value <= '~')
+	while (value >= ' ' && value <= '~')
 	{
 		buffer.push_back(static_cast<uint8_t>(value));
 		value = getchar();
 	}
 
 	uint32_t length = buffer.size();
-	uint8_t* data = new uint8_t[length];
-	std::copy(buffer.begin(), buffer.end(), data);
+
+
+	BaseValue* result = new BaseValue(vt_string, length);
+	//result->length = length;
+	//result->data = new uint8_t[length]; // or malloc if you want C-style
+	std::copy(buffer.begin(), buffer.end(), result->data);
+	return result;
+	//std::memcpy(result->data, str.data(), result->length);
+
+
+
+
+	//return makeValue<char*>();
+	//uint8_t* data = new uint8_t[length];
+	//std::copy(buffer.begin(), buffer.end(), data);
 	// Now `array` points to the raw data, and `length` contains the number of elements
-	return Value(data, length, true);
+	//return Value(data, length, true);
 }
+//Value VMCore::read_raw() {
+//	std::vector<uint8_t> buffer;
+//	int value = getchar();
+//
+//	while(value >= ' ' && value <= '~')
+//	{
+//		buffer.push_back(static_cast<uint8_t>(value));
+//		value = getchar();
+//	}
+//
+//	uint32_t length = buffer.size();
+//	uint8_t* data = new uint8_t[length];
+//	std::copy(buffer.begin(), buffer.end(), data);
+//	// Now `array` points to the raw data, and `length` contains the number of elements
+//	return Value(data, length, true);
+//}
 //Value VMCore::read_raw() {
 //	std::vector<uint8_t> buffer;
 //

@@ -1,0 +1,162 @@
+language design 2025
+
+type byte:
+- a full byte for all sorts of types
+
+raw =        0x00,
+string =     0x01,   //not that complex but it does store its length
+
+uint8_t =    0x10,   // none - char, byte, uint8, u8
+uint16_t =   0x12,   // none - ushort, uint16, u16
+uint32_t =   0x13,   // 50u  - uint, uint32, u32
+uint64_t =   0x14,   // 50ul - ulong, uint64, u64
+int8_t =     0x15,   // none - sbyte, int8, i8
+int16_t =    0x16,   // none - short, int16, i16
+int32_t =    0x17,   // 50   - the default - int, int32, i32
+int64_t =    0x18,   // 50l  - long, int64, i64
+float_t =    0x19,   // 50f  - float, float32, f32
+double_t =   0x1A,   // 50d  - double, float64, f64
+
+complex types
+complex_type=0xFC,   // only used in header, basicly means Read TypedByte system() usefull if u reuse a certain type
+struct =     0xFD,   // struct { field int age; }
+array =      0xFE,   // array[5]<int>, arr[5]<char> 
+pointer =    0xFF,   // ptr<int>, pointer<int>
+
+
+vt_complex_type:
+only used in header, it means read another byte (TypedByte)
+basicly it means it stores extra info
+so since complex types are stored at the start of .data
+vt_complex_type basicly preappends a type, so u only have to define a type once and reuse it
+
+normall in header u would have
+array[10]<array[1]<int>>, in the header it would simply be "vt_array" 
+and the "[10]<array[1]<int>>" is stored in the data
+
+if we instead use complex type it would be stored in the header
+complex_type<array[10]<array[1]<int>>> 
+then when its created it gets type "array" and data starts with "[10]<array[1]<int>>" (AT RUNTIME)
+so we store its type in the header and then the amount of times used etc only needs the type once
+and every derivitive
+this is cool but it basicly means we can reuse the same data alot
+
+we wont automate this i think
+instead typedef will do it
+
+typedef grid array[10]<array[1]<int>>;
+declare grid myGrid1 = [[1],[1],[1],[1],[1],[1],[1],[1],[1][1]];
+declare grid myGrid2 = [[1],[1],[1],[1],[1],[1],[1],[1],[1][1]];
+declare grid myGrid3 = [[1],[1],[1],[1],[1],[1],[1],[1],[1][1]];
+
+would definitly save some space
+but its really ment to be used for structs ofcource because the struct definition is pretty big
+
+it also allows us to do something cool if we have complex type of complex type
+custom implemnentation
+complex_type<complex_type[10]<string>{*any data here*}>
+this needs to be custom coded when a complex type is a complex type
+we will store this data in the header
+we also give a length the second complex_type but it doest get to the varible
+so basicly what this does is it allows us to reuse data
+
+typedef hello_string complex_type<complex_type[5]<string>{"hello"}>
+declare hello_string hello_world = " world";
+
+now all of the hello_string start with "hello"
+
+but ofcource this is ment to be used for structs
+typedef point struct 
+{
+	field int x = 0;
+	field int y = 0;
+}
+
+declare point position = {10, 50};
+
+which will make point complex type of struct so that its in the header and only used once
+
+if u only need it once u can just do
+declare struct 
+{
+	field int x = 0;
+	field int y = 0;
+} position = {10, 50};
+
+if u use default values u can just do
+declare struct 
+{
+	field int x = 0;
+	field int y = 0;
+} position;
+of cource
+
+//special cases:
+//- FE (Array type, read next bytes for size (VLQ) then read next byte for actual type [can also be array])
+// - in header: 
+
+declare_raw balls = 0xFF, 0x45, 0b0000_1101;
+declare string msg = "hello world";
+declare string input;
+declare
+
+//#define default_type int32 prob just adds confusion
+
+push 50u
+push u32 50
+push uint 50
+push uint32 50
+
+
+push 50 //default to int32
+push i32 50
+push int 50
+push int32 50
+
+push '5' //default to uint8
+push u8 '5'
+push char '5'
+push byte '5'
+push uint8 '5'
+
+
+0 default is int
+0.5 default is float
+'' default is char
+0x default is byte
+0b0000_0001 default is byte
+"blahblah" default is string
+
+
+//delare struct 
+//{
+//	field string name = "joe";
+//	field int age = 48;
+//} Person;
+//
+//delare struct 
+//{
+//	field ptr string name;
+//	field int age;
+//} Person = {"balls", 8};
+//
+//typedef Point struct 
+//{
+//
+//};
+//
+//push struct
+//{
+//	field string name = "joe";
+//	field int age = 48;
+//}
+//
+//declare array[]<float> offsets = [15, 65, 98];
+//
+//
+//push array[2]<char> ['a','b']
+//push string "hello"
+//push array[2]<array[2]>
+//
+//
+//push ushort
