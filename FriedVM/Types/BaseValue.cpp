@@ -2,7 +2,7 @@
 #include "BaseValue.h"
 
 // Function to get the size of the element based on the type
-size_t BaseValue::getTypeSize(ValueType type) {
+constexpr size_t BaseValue::getTypeSize(ValueType type) {
     switch (type) {
     case vt_raw: return 0;
     case vt_string: return 0;
@@ -46,6 +46,7 @@ void BaseValue::FillDefaultValue(BaseValue *value) {
     case vt_label: value->data = new uint8_t[8]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; break; //default label just points to start of binary
     default: DIE << "unhandled type"; break;
     }
+    value->length = getTypeSize(value->type_index);
 }
 
 bool BaseValue::isNumber() const {

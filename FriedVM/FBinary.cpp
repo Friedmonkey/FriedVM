@@ -110,7 +110,7 @@ varible* FBinary::GetParams(INSTRUCTION& instruction)
 	varible* params = new varible[instruction.paramCount];
 	for (int i = 0; i < instruction.paramCount; i++)
 	{
-		params[i] = instance.typed_varibles.at(VLQ());
+		params[i] = instance.typed_global_varibles.at(VLQ());
 		//auto bytes = ReadBytes(instruction.arg_size);
 		//params[i] = CastToUint32(bytes, instruction.arg_size);
 		// = (uint32_t)VLQ();
@@ -185,7 +185,8 @@ uint64_t FBinary::offsetted_VLQ(uint64_t* offset)
 void FBinary::getVaribleTypeSize(uint64_t* position, varible varible)
 {
 	uint64_t value = offsetted_VLQ(position);
-	delete varible->data;
+	if (varible->ownsData)
+		delete[] varible->data;
 	varible->data = CastFromUint64(value, varible->length);
 	//uint8_t byte = 0;
 
@@ -248,14 +249,18 @@ void FBinary::FillData(uint64_t *position, varible varible)
 		}
 		*position += size;
 
-		delete[] varible->data;
+		if (varible->ownsData)
+			delete[] varible->data;
 		varible->data = buffer;
+		varible->ownsData = true;
 	}
 	else
 	{
 		size_t size = BaseValue::getTypeSize(varible->type_index);
 		bool isCorrectSize = varible->length == size;
 
+		if (!varible->ownsData) //then we cannot overwrite the existing
+			isCorrectSize = false; //just say its wrong size then itll reallocate space for it
 		uint8_t* buffer = isCorrectSize ? varible->data : new uint8_t[size];
 
 		for (size_t i = 0; i < size; i++)
@@ -267,8 +272,10 @@ void FBinary::FillData(uint64_t *position, varible varible)
 
 		if (!isCorrectSize)
 		{	//we need to swap te buffers
-			delete[] varible->data;
+			if (varible->ownsData)
+				delete[] varible->data;
 			varible->data = buffer;
+			varible->ownsData = true;
 		}
 	}
 
@@ -325,7 +332,7 @@ varible FBinary::ParseTypeByte(std::vector<uint8_t> &complex_buffer, bool canBeC
 	//}
 	//else
 	{
-		varible val = BaseValue::createValue(type_byte);
+		varible val = BaseValue::createEmptyValue(type_byte);
 		val->isConst = isConst;
 		return val;
 	}

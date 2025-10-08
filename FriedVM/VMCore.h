@@ -11,6 +11,8 @@ public:
 	VMCore(VMInstance& newInstance);
 	void Parse();
 	void Run(uint64_t start, uint64_t end);
+	void AddGlobalVarible(varible var);
+	void AddGlobalSymbol(std::string str);
 	bool typed_Peek_stack(varible* output, int offset = 0);
 	bool Peek_stack(uint32_t *pValue, int offset = 0);
 	bool typed_StackTruthy();

@@ -12,6 +12,7 @@ static std::string current_instruction;
 		fflush(stdout);
 		fprintf(stderr, "\n\nFatal error on %s: %s\n", current_instruction.c_str(), str().c_str());
 		exit(EXIT_FAILURE);
+		//std::abort();
 	}
 
 };

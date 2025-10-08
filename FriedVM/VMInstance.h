@@ -47,8 +47,14 @@ public:
 
 	uint64_t ProgramIndex = 0;
 	std::vector<varible> typed_stack;
-	std::vector<varible> typed_varibles;
+	std::vector<varible> typed_global_varibles;
+	std::vector<varible> typed_temp_varibles;
 
+	bool compact;
+	bool hasSymbols;
+	std::unordered_map<BaseValue* ,size_t> symbolLookup;
+	std::vector<uint8_t> symbols_length;
+	std::vector<uint8_t*> symbols;
 
 	std::vector<uint8_t> varible_buffer;
 
@@ -61,10 +67,6 @@ public:
 	uint8_t emptyVar_size = 2;
 	uint8_t version = 1;
 
-	bool compact;
-	bool hasSymbols;
-	std::vector<uint8_t> symbols_length;
-	std::vector<uint8_t*> symbols;
 };
 
 class VMInstanceBase

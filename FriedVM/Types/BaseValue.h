@@ -10,7 +10,7 @@
 struct BaseValue
 {
     uint8_t* data;
-    size_t length;
+    size_t length; //the CURRENT length of data RIGHT NOW (NOT the length of its type even tho it should be)
     ValueType type_index;
 
     union {
@@ -18,47 +18,123 @@ struct BaseValue
         struct
         {
             bool isConst : 1;
-            uint8_t rest : 7;
+            bool isGlobal : 1;
+            bool ownsData : 1;
+            uint8_t rest : 5;
         };
     };
 
-    BaseValue(ValueType t, uint8_t *newData, size_t len, uint8_t meta = 0) : type_index(t), length(len), metadata(meta) {
-        data = newData;
-    }
+    //BaseValue(ValueType t, uint8_t *newData, size_t len, uint8_t meta = 0) : type_index(t), length(len), metadata(meta) {
+    //    data = newData;
+    //}
 
     // Constructor to initialize the BaseValue
     BaseValue(ValueType t, size_t len, uint8_t meta = 0) : type_index(t), length(len), metadata(meta) {
-        data = new uint8_t[length](); // Allocate memory for the data
+        data = nullptr;
+        //data = new uint8_t[length](); // Allocate memory for the data
     }
 
     // Destructor to free the allocated memory
     ~BaseValue() {
-        delete[] data;
+        if (ownsData)
+        {
+            delete[] data;
+        }
     }
 
     // Function to get the size of the element based on the type
-    static size_t getTypeSize(ValueType type);
+    static constexpr size_t getTypeSize(ValueType type);
+
+    inline bool isDynamic() const {
+        return getTypeSize(type_index) == 0;
+    }
+
 
     static void FillDefaultValue(BaseValue *value);
 
-    static BaseValue* createValue(ValueType type) {
-        BaseValue* val = new BaseValue(type, getTypeSize(type));
-        //std::memcpy(val->data, &value, sizeof(T));  // Copy the raw data
-        return val;
-    }
-
     static BaseValue* makeString(std::string value) {
-        BaseValue* val = new BaseValue(vt_string, value.length());
-        //val->length = ;
-        std::memcpy(val->data, value.data(), val->length); // Copy the raw data
-        return val;
+        uint8_t* newData = reinterpret_cast<uint8_t*>(value.data());
+        return createValueCopyData(vt_string, newData, value.length());
     }
 
     template<typename T>
     static BaseValue* makeValue(ValueType type, T value) {
-        BaseValue* val = new BaseValue(type, getTypeSize(type));
-        std::memcpy(val->data, &value, sizeof(T)); // Copy the raw data
+        uint8_t* newData = reinterpret_cast<uint8_t*>(&value);
+        return createValueCopyData(type, newData, sizeof(T), true);
+    }
+
+    static BaseValue* createEmptyValue(ValueType type) {
+        BaseValue* val = new BaseValue(type, 0);
         return val;
+    }
+
+    static BaseValue* createValueTransferData(bool ownData, ValueType type, uint8_t* data, size_t dataSize) {
+        BaseValue* val = createEmptyValue(type);
+        auto size = getTypeSize(type); //the size it should be
+        val->ownsData = ownData;
+        if (size == 0 || dataSize == size)
+        {
+            val->data = data; //transfer the data pointer
+            val->length = dataSize;
+        }
+        else
+            DIE << "Unable to transfer data because of incorrect size!";
+        return val;
+    }
+
+    static BaseValue* createValueCopyData(ValueType type, uint8_t *data, size_t dataSize, bool allowShrink = false) {
+        auto size = getTypeSize(type); //the size it should be
+        BaseValue* val = new BaseValue(type, size);
+        if (dataSize == 0)
+            return val;
+        auto allocSize = (size == 0) ? dataSize : size;
+        val->data = new uint8_t[allocSize]();
+        val->length = allocSize;
+        val->ownsData = true;
+        if (allowShrink)
+            val->setDataCopyCutoff(data, dataSize);
+        else
+            val->setDataCopy(data, dataSize);
+        return val;
+    }
+
+    void setDataCopyCutoff(uint8_t* newData, size_t dataSize)
+    {
+        auto size = (dataSize > length) ? length : dataSize;
+        setDataCopy(newData, size);
+    }
+
+    void setDataCopy(uint8_t* newData, size_t dataSize)
+    {
+        if (newData == nullptr)
+            DIE << "newData hasnt been allocated yet! for type" << HEX(type_index);
+        if (isDynamic())
+        {
+            if (!data || length != dataSize) {
+                createData(dataSize);
+            }
+        }
+        if (!ownsData)
+            createData(dataSize); //we have to own it
+
+        if (length != dataSize)
+            DIE << "dataSize does not match object of type " << HEX(type_index) << " which has size " << NUM(length) << " but dataSize was " << NUM(dataSize);
+
+        std::memcpy(data, newData, dataSize);
+    }
+
+    void createData(size_t dataSize)
+    {
+        setData(true, new uint8_t[dataSize](), dataSize);
+    }
+
+    void setData(bool ownData, uint8_t* newData, size_t dataSize)
+    {
+        if (ownsData)
+            delete[] data;
+        data = newData;
+        length = dataSize;
+        ownsData = ownData;
     }
 
     static void print(const BaseValue *val)
@@ -156,9 +232,8 @@ struct BaseValue
     }
 
     static BaseValue* dupValue(const BaseValue* value) {
-        auto size = value->length;
-        BaseValue* val = new BaseValue(value->type_index, size, value->metadata);
-        std::memcpy(val->data, value->data, size);
+        BaseValue* val = createValueCopyData(value->type_index, value->data, value->length);
+        val->isConst = value->isConst;
         return val;
     }
 
@@ -356,7 +431,7 @@ struct BaseValue
     {
         if (!input->isNumber())
             DIE << "input was not a number";
-        auto val = BaseValue::createValue(newType);
+        auto val = BaseValue::createEmptyValue(newType);
         FillDefaultValue(val);
         if (!val->isNumber())
             DIE << "requested type was not a number";
@@ -555,9 +630,8 @@ struct BaseValue
                 //now we need to do some logic to convert our string to T resultNum
                 //TODO: convert str to resultNum
 
-                result->length = BaseValue::getTypeSize(result->type_index);
-                delete[] result->data;
-                result->data = new uint8_t[result->length];
+
+                result->createData(BaseValue::getTypeSize(result->type_index));
 
                 std::memcpy(result->data, &resultNum, sizeof(T)); // Copy the raw data
                 //BaseValue::makeValue(result->type_index, resultNum);
@@ -672,11 +746,10 @@ struct BaseValue
     {
         if (var1->type_index == vt_string)
         {
-            BaseValue* result = new BaseValue(vt_string, var1->length);
-            std::memcpy(result->data, var1->data, var1->length);
-            return result;
+            return createValueCopyData(var1->type_index, var1->data, var1->length);
         }
-        BaseValue* result = new BaseValue(vt_string, 0);
+
+        BaseValue* result = createEmptyValue(vt_string);
         BaseValue::ExecuteSingleTypedTemplate(BaseValue::ToStringTypedFunctor(), var1, result);
         return result;
     }
@@ -688,8 +761,7 @@ struct BaseValue
                 oss << var;
                 std::string str = oss.str();
 
-                result->length= str.length();
-                result->data = new uint8_t[result->length]; // or malloc if you want C-style
+                result->createData(str.length());
                 std::memcpy(result->data, str.data(), result->length);
             });
         }

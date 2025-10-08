@@ -63,8 +63,8 @@ void VMCore::Parse()
 	}
 	uint64_t totalLength = instance.constPoolStart;
 #pragma region Declares & Symbols
-	instance.typed_varibles.push_back(constFalse);
-	instance.typed_varibles.push_back(constTrue);
+	AddGlobalVarible(constFalse);
+	AddGlobalVarible(constTrue);
 
 	std::vector<uint8_t> complex_buffer;
 	while(instance.pc < instance.instructionStart) //declare section
@@ -78,14 +78,12 @@ void VMCore::Parse()
 			for (size_t i = 0; i < declaredDefault; i++)
 			{
 				varible newVarible = BaseValue::makeValue(vt_bool, false);
-				instance.typed_varibles.push_back(newVarible);
-				newVarible->rest = instance.typed_varibles.size();
+				AddGlobalVarible(newVarible);
 			}
 			for (size_t i = 0; i < declaredValue; i++)
 			{
 				varible newVarible = BaseValue::makeValue(vt_bool, true);
-				instance.typed_varibles.push_back(newVarible);
-				newVarible->rest = instance.typed_varibles.size();
+				AddGlobalVarible(newVarible);
 			}
 			delete var_type;
 			continue;
@@ -112,8 +110,7 @@ void VMCore::Parse()
 			for (size_t i = 0; i < declaredDefault; i++)
 			{
 				varible newVarible = BaseValue::dupValue(newDefaultVarible);
-				instance.typed_varibles.push_back(newVarible);
-				newVarible->rest = instance.typed_varibles.size();
+				AddGlobalVarible(newVarible);
 			}
 		}
 		for (size_t i = 0; i < declaredValue; i++)
@@ -139,30 +136,24 @@ void VMCore::Parse()
 
 			delete[] newVarible->data;
 			newVarible->data = buffer;*/
-			instance.typed_varibles.push_back(newVarible);
-			newVarible->rest = instance.typed_varibles.size();
+			AddGlobalVarible(newVarible);
 		}
 		if (hasConst)
 		{
 			varible newVarible = BaseValue::dupValue(newDefaultVarible);
 			newVarible->isConst = true;
-			instance.typed_varibles.push_back(newVarible);
-			newVarible->rest = instance.typed_varibles.size();
+			AddGlobalVarible(newVarible);
 
 			for (size_t i = 0; i < declaredConst; i++)
 			{
 				varible newVarible = BaseValue::dupValue(var_type);
 				newVarible->isConst = true;
 				binaryApi.FillData(&totalLength, newVarible);
-				instance.typed_varibles.push_back(newVarible);
-				newVarible->rest = instance.typed_varibles.size();
+				AddGlobalVarible(newVarible);
 			}
 		}
 
-		if (useDefault)
-		{
-			delete newDefaultVarible;
-		}
+		delete newDefaultVarible;
 		delete var_type;
 		////uint8_t type_byte = 
 
@@ -188,23 +179,14 @@ void VMCore::Parse()
 	//}
 	if (instance.hasSymbols && instance.pc == instance.instructionStart) //symbol section
 	{
-		std::string constFalseSymbol = "false";
-		uint8_t* falseBuffer = new uint8_t[constFalseSymbol.size()];
-		std::memcpy(falseBuffer, constFalseSymbol.data(), constFalseSymbol.size());
-		instance.symbols.push_back(falseBuffer);
-		instance.symbols_length.push_back(constFalseSymbol.size());
-
-		std::string constTrueSymbol = "true";
-		uint8_t* trueBuffer = new uint8_t[constTrueSymbol.size()];
-		std::memcpy(trueBuffer, constTrueSymbol.data(), constTrueSymbol.size());
-		instance.symbols.push_back(trueBuffer);
-		instance.symbols_length.push_back(constTrueSymbol.size());
+		AddGlobalSymbol("false");
+		AddGlobalSymbol("true");
 
 		totalLength = symbolsStart;
-		std::vector<uint8_t> symbol_buffer;
 		uint32_t skipped = 0;
 		while (totalLength < instance.bytecode.size())
 		{
+			std::ostringstream symbol_buffer;
 			symbol_buffer.clear();
 
 			while (totalLength < instance.bytecode.size())
@@ -216,18 +198,19 @@ void VMCore::Parse()
 				bool isUnderScore = byte == 0x5F;
 
 				// handle special case for underscore at start
-				if (symbol_buffer.empty() && isUnderScore && instance.compact)
+				if (symbol_buffer.str().empty() && isUnderScore && instance.compact)
 				{
 					totalLength++; //skip the underscore
 					uint64_t amount = binaryApi.offsetted_VLQ(&totalLength);
 					for (size_t i = 0; i < amount; i++)
 					{
 						std::string str = "_" + std::to_string(skipped);
-						uint8_t* buffer = new uint8_t[str.size()];
-						std::memcpy(buffer, str.data(), str.size());
+						AddGlobalSymbol(str);
+						//uint8_t* buffer = new uint8_t[str.size()];
+						//std::memcpy(buffer, str.data(), str.size());
 
-						instance.symbols.push_back(buffer);
-						instance.symbols_length.push_back(str.size());
+						//instance.symbols.push_back(buffer);
+						//instance.symbols_length.push_back(str.size());
 						skipped++;
 					}
 					if (instance.bytecode.at(totalLength) != symbolSplitCar)
@@ -239,18 +222,20 @@ void VMCore::Parse()
 
 				if (isNumber || isUppercase || isLowercase || isUnderScore)
 				{
-					symbol_buffer.push_back(byte);
+					symbol_buffer << static_cast<char>(byte);
 					totalLength++;
 				}
 				else if (byte == symbolSplitCar)
 				{
 					totalLength++; // consume the split char
 
-					uint8_t* buffer = new uint8_t[symbol_buffer.size()];
-					std::memcpy(buffer, symbol_buffer.data(), symbol_buffer.size());
+					std::string str = symbol_buffer.str();
+					AddGlobalSymbol(str);
+					//uint8_t* buffer = new uint8_t[symbol_buffer.size()];
+					//std::memcpy(buffer, symbol_buffer.data(), symbol_buffer.size());
 
-					instance.symbols.push_back(buffer);
-					instance.symbols_length.push_back(symbol_buffer.size());
+					//instance.symbols.push_back(buffer);
+					//instance.symbols_length.push_back(symbol_buffer.size());
 
 					break; // done with this symbol
 				}
@@ -258,7 +243,7 @@ void VMCore::Parse()
 				{
 					DIE << "The symbol at position " << NUM(totalLength)
 						<< " has incorrect char (" << byte << ") at symbol index "
-						<< NUM(symbol_buffer.size());
+						<< NUM(symbol_buffer.str().size());
 				}
 			}
 		}
@@ -360,6 +345,21 @@ void VMCore::Run(uint64_t start, uint64_t end)
 
 	//	statement.Instruction.execute(statement.params);
 	//}
+}
+
+void VMCore::AddGlobalVarible(varible var)
+{
+	instance.typed_global_varibles.push_back(var);
+	//var->rest = instance.typed_global_varibles.size();
+	instance.symbolLookup.insert({var, instance.typed_global_varibles.size()});
+}
+
+void VMCore::AddGlobalSymbol(std::string str)
+{
+	uint8_t* strBuffer = new uint8_t[str.size()];
+	std::memcpy(strBuffer, str.data(), str.size());
+	instance.symbols.push_back(strBuffer);
+	instance.symbols_length.push_back(str.size());
 }
 
 static uint64_t GetVarVLQ(varible var, uint64_t *offset)
@@ -473,7 +473,7 @@ varible VMCore::resolveInterpolated(varible interpolated_string)
 	while (offset < interpolated_string->length) //while there are still vlq's left to read
 	{
 		auto index = GetVarVLQ(interpolated_string, &offset);
-		varible var = instance.typed_varibles.at(index);
+		varible var = instance.typed_global_varibles.at(index);
 		if (!var->isConst)
 		{	//we have a mutable string which could change, so we cant bake it anymore
 			bake = false;
@@ -792,15 +792,18 @@ void VMCore::typed_setVar(varible reference, varible newValue) {
 	if (!(reference->type_index == newValue->type_index))
 		DIE << "incompatible types! trying to assign " << newValue->type_index << " to a " << reference->type_index;
 
+	//TODO: take into account if its global or not
+	//e.g transfer vs copy
 
-	if (reference->length != newValue->length) //same type but length does not match?
-	{	//we reallocate space of the correct size i guess
-		delete[] reference->data;
-		reference->data = new uint8_t[newValue->length];
-		reference->length = newValue->length;
-	}
-
-	std::memcpy(reference->data, newValue->data, newValue->length);
+	reference->setDataCopy(newValue->data, newValue->length);
+		//	if (reference->length != newValue->length) //same type but length does not match?
+		//	{	//we reallocate space of the correct size i guess
+		//		delete[] reference->data;
+		//		reference->data = new uint8_t[newValue->length];
+		//		reference->length = newValue->length;
+		//	}
+		//
+		//	std::memcpy(reference->data, newValue->data, newValue->length);
 
 	//BaseValue::computeNumbers(val1, val2, BaseValue::AddOperation{})
 
@@ -1633,12 +1636,18 @@ void VMCore::SYS_DUMP()
 	//	DIE << "Cant dump varible because symbols are not included";
 
 	varible data = typed_pop();
-	varible symbol = new BaseValue(data->type_index, data->data, std::min(data->length, (size_t)4));
-	if (instance.hasSymbols && data->rest != 0) //no symbol
-	{	//if there is a label availible
-		symbol->type_index = vt_string;
-		symbol->data = instance.symbols.at(data->rest - 1);
-		symbol->length = instance.symbols_length.at(data->rest - 1);
+	varible symbol = nullptr;
+	if (instance.symbolLookup.contains(data))
+	{
+		auto idx = instance.symbolLookup.at(data);
+		auto symbolLength = instance.symbols_length.at(idx);
+		uint8_t *symbolData = instance.symbols.at(idx);
+
+		symbol = BaseValue::createValueTransferData(false, vt_string, symbolData, symbolLength);
+	}
+	else
+	{
+		symbol = BaseValue::createValueTransferData(false, data->type_index, data->data, std::min(data->length, (size_t)4));
 	}
 	printf("symbol: \"");
 	print_raw(symbol);
@@ -1840,13 +1849,14 @@ varible VMCore::read_raw() {
 
 	uint32_t length = buffer.size();
 
-
-	BaseValue* result = new BaseValue(vt_string, length);
-	//result->length = length;
-	//result->data = new uint8_t[length]; // or malloc if you want C-style
-	std::copy(buffer.begin(), buffer.end(), result->data);
-	return result;
-	//std::memcpy(result->data, str.data(), result->length);
+	return BaseValue::createValueCopyData(vt_string, buffer.data(), buffer.size());
+//
+//	BaseValue* result = new BaseValue(vt_string, length);
+//	//result->length = length;
+//	//result->data = new uint8_t[length]; // or malloc if you want C-style
+//	std::copy(buffer.begin(), buffer.end(), result->data);
+//	return result;
+//	//std::memcpy(result->data, str.data(), result->length);
 
 
 
