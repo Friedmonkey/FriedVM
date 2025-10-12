@@ -25,7 +25,7 @@ public:
 	const uint8_t opcode;
 	const std::string op_name;
 	const uint8_t paramCount;
-	//uint8_t arg_size; // Argument size (0–3)
+	//uint8_t arg_size; // Argument size (0ï¿½3)
 	//bool immediate;   // Immediate flag
 	//std::function<void(uint32_t* params, bool immediate, uint8_t arg_size)> execute;
 	std::function<bool(varible *params)> execute;
@@ -91,14 +91,7 @@ public:
 #define iGET_STRUCT		0xBB
 #define iCREATE_STRUCT  0xBC
 
-//#define i			0x18
-//#define i			0x19
-//#define i			0x1A
-//#define i			0x1B
-//#define i			0x1C
-//#define i			0x1D
-//#define i			0x1E
-//#define i			0x1F
+
 
 
 //math Modes
@@ -127,7 +120,7 @@ public:
 #define bmPUSH_FROM_STACK	0x02
 #define bmREMOVE_FROM_END	0x03
 #define bmFORMAT			0x04
-//#define bm					0x05
+
 
 #define iTRUE		0x01
 #define iFALSE		0x00

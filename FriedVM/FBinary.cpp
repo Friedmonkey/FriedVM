@@ -118,24 +118,7 @@ varible* FBinary::GetParams(INSTRUCTION& instruction)
 
 	return params;
 }
-//uint32_t* FBinary::GetParams(INSTRUCTION &instruction)
-//{
-//	if (instruction.paramCount > maxParamCount)
-//	{
-//		DIE << "Amount of paramters requested exeeds the max amount of parameters defined!";
-//		return NULL;
-//	}
-//
-//	uint32_t *params = new uint32_t[instruction.paramCount];
-//	for (int i = 0; i < instruction.paramCount; i++)
-//	{
-//		//auto bytes = ReadBytes(instruction.arg_size);
-//		//params[i] = CastToUint32(bytes, instruction.arg_size);
-//		params[i] = (uint32_t)VLQ();
-//	}
-//
-//	return params;
-//}
+
 uint64_t FBinary::offsetted_VLQ(uint64_t* offset)
 {
 	uint64_t value = 0;
@@ -157,65 +140,13 @@ uint64_t FBinary::offsetted_VLQ(uint64_t* offset)
 
 	return value;
 }
-//uint64_t FBinary::offsetted_VLQ(ValueType type) 
-//{
-//	for (size_t i = 0; i < size; i++)
-//	{
-//		buffer[i] = instance.bytecode[pos + i];
-//	}
-//	uint64_t value = 0;
-//	uint8_t shift = 0;
-//	uint8_t byte = 0;
-//
-//	do
-//	{
-//		byte = GetByte();
-//		value |= (uint64_t)(byte & 0x7F) << shift; // Mask out MSB and shift
-//		shift += 7;
-//
-//		if (shift >= 64) // Prevent overflow
-//		{
-//			DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
-//		}
-//
-//	} while (byte & 0x80); // Continue if MSB is 1
-//
-//	return value;
-//}
+
 void FBinary::getVaribleTypeSize(uint64_t* position, varible varible)
 {
 	uint64_t value = offsetted_VLQ(position);
 	delete varible->data;
 	varible->data = CastFromUint64(value, varible->length);
-	//uint8_t byte = 0;
 
-	////varible->length = size;
-	//uint8_t* buffer = varible->data;
-	//auto size = varible->length;
-
-	//size_t i = 0;
-	//do
-	//{
-	//	byte = GetByte(position);
-	//	buffer[i] = byte & 0x7F;
-	//	i++;
-
-	//	if (i >= size) // Prevent overflow
-	//	{
-	//		DIE << "VLQ decoding error: shift exceeded 64 bits, possibly malformed data.";
-	//	}
-
-	//} while (byte & 0x80); // Continue if MSB is 1
-
-	////pad the ramaining with 0
-	//for (; i < size; i++)
-	//{
-	//	buffer[i] = pad;
-	//	*position += 1;
-	//}
-
-	////delete[] varible->data;
-	////varible->data = buffer;
 }
 uint64_t FBinary::getComplexTypeSize(ValueType type, uint64_t *position) {
 	switch (type) {
@@ -272,20 +203,7 @@ void FBinary::FillData(uint64_t *position, varible varible)
 		}
 	}
 
-	//auto position = totalLength + constPoolStart;
-	//totalLength += size;
 
-	//for (size_t i = 0; i < length; i++)
-	//{
-	//	if (i > newVarible->length)
-	//	{
-	//		buffer[i] = instance.bytecode[position + i];
-	//	}
-	//	else
-	//	{
-	//		buffer[i] = newVarible->data[i];
-	//	}
-	//}
 
 
 }
@@ -301,49 +219,13 @@ varible FBinary::ParseTypeByte(std::vector<uint8_t> &complex_buffer, bool canBeC
 	bool isConst = ((byte & vt_constant_flag_mask) != 0);
 	ValueType type_byte = static_cast<ValueType>(byte & ~vt_constant_flag_mask);
 
-	//if (type_byte == vt_constant)
-	//{
-	//	varible val = ParseTypeByte(complex_buffer);
-	//	val->isConst = true;
-	//	return val;
-	//}
-	//else if (type_byte == vt_string)
-	//{
-	//	return BaseValue::createValue(type_byte);
-	//}
-	//else if (type_byte == vt_array)
-	//{ //only if vt_complex_type using make_type
-	//	//length vlq
-	//	uint8_t byte;
-	//	do
-	//	{
-	//		byte = GetByte();
-	//		complex_buffer.push_back(byte);
-	//	}
-	//	while (byte & 0x80);
-	//	ParseTypeByte(complex_buffer);
-	//}
-	//else
+
 	{
 		varible val = BaseValue::createValue(type_byte);
 		val->isConst = isConst;
 		return val;
 	}
-	//if (IsComplexType(type_byte))
-	//{
-	//}
-	//else
-	//{
-	//	BaseValue::getTypeSize(type_byte);
-	//}
-	//return type_byte;
-	//for (uint8_t i = 0; i < count; i++)
-	//{
-	//	buffer[i] = instance.bytecode[instance.pc + i];
-	//}
-	//instance.pc += count;
-	//return buffer;
-	//return CastToUint64(ReadBytes(instance.meta_size), instance.meta_size);
+
 }
 bool FBinary::IsComplexType(ValueType vt)
 {
